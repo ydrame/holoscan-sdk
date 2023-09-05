@@ -26,6 +26,8 @@
 #include <vulkan/spv/geometry_text_shader.glsl.vert.h>
 #include <vulkan/spv/image_shader.glsl.frag.h>
 #include <vulkan/spv/image_shader.glsl.vert.h>
+#include <vulkan/spv/vkcube.glsl.frag.h>
+#include <vulkan/spv/vkcube.glsl.vert.h>
 
 #include <algorithm>
 #include <filesystem>
@@ -472,6 +474,9 @@ class Vulkan::Impl {
 
   Window* get_window() const;
 
+  const timeval& get_start_tv() const;
+  void set_start_tv(const struct timeval& tv);
+
   void begin_transfer_pass();
   void end_transfer_pass();
   void begin_render_pass();
@@ -508,7 +513,7 @@ class Vulkan::Impl {
   void draw(vk::PrimitiveTopology topology, uint32_t count, uint32_t first,
             const std::vector<Buffer*>& vertex_buffers, float opacity,
             const std::array<float, 4>& color, float point_size, float line_width,
-            const nvmath::mat4f& view_matrix);
+            const struct ubo& ubo, const nvmath::mat4f& view_matrix);
 
   void draw_text_indexed(vk::DescriptorSet desc_set, Buffer* vertex_buffer, Buffer* index_buffer,
                          vk::IndexType index_type, uint32_t index_count, uint32_t first_index,
@@ -566,6 +571,7 @@ class Vulkan::Impl {
 
   std::unique_ptr<CudaService> cuda_service_;
   UniqueCUstream cuda_stream_;
+  struct timeval start_tv;
 
   /**
    * NVVK objects don't use destructors but init()/deinit(). To maintain the destructor calling
@@ -651,6 +657,7 @@ class Vulkan::Impl {
 
   vk::UniquePipelineLayout image_pipeline_layout_;
   vk::UniquePipelineLayout geometry_pipeline_layout_;
+  vk::UniquePipelineLayout vkcube_pipeline_layout_;
   vk::UniquePipelineLayout geometry_text_pipeline_layout_;
 
   nvvk::DescriptorSetBindings desc_set_layout_bind_;
@@ -673,6 +680,7 @@ class Vulkan::Impl {
   vk::UniquePipeline geometry_line_color_pipeline_;
   vk::UniquePipeline geometry_line_strip_color_pipeline_;
   vk::UniquePipeline geometry_triangle_color_pipeline_;
+  vk::UniquePipeline geometry_triangle_strip_color_pipeline_;
 
   vk::UniquePipeline geometry_text_pipeline_;
 
@@ -700,7 +708,9 @@ Vulkan::Impl::~Impl() {
 
 void Vulkan::Impl::setup(Window* window, const std::string& font_path, float font_size_in_pixels) {
   window_ = window;
-
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  set_start_tv(tv);
   // Initialize instance independent function pointers
   {
     vk::DynamicLoader dl;
@@ -902,6 +912,12 @@ void Vulkan::Impl::setup(Window* window, const std::string& font_path, float fon
   push_constant_ranges[1].offset = sizeof(PushConstantVertex);
   push_constant_ranges[1].size = sizeof(PushConstantFragment);
 
+  // Push constants
+  vk::PushConstantRange vkcube_push_constant_ranges[1];
+  vkcube_push_constant_ranges[0].stageFlags = vk::ShaderStageFlagBits::eVertex;
+  vkcube_push_constant_ranges[0].offset = 0;
+  vkcube_push_constant_ranges[0].size = sizeof(VKcubePushConstantVertex);
+
   // create the pipeline layout for images
   {
     // Creating the Pipeline Layout
@@ -936,6 +952,13 @@ void Vulkan::Impl::setup(Window* window, const std::string& font_path, float fon
     create_info.pushConstantRangeCount = 2;
     create_info.pPushConstantRanges = push_constant_ranges;
     geometry_pipeline_layout_ = device_.createPipelineLayoutUnique(create_info);
+  }
+
+  {
+    vk::PipelineLayoutCreateInfo create_info2;
+    create_info2.pushConstantRangeCount = 1;
+    create_info2.pPushConstantRanges = vkcube_push_constant_ranges;
+    vkcube_pipeline_layout_ = device_.createPipelineLayoutUnique(create_info2);
   }
 
   geometry_point_pipeline_ =
@@ -985,6 +1008,19 @@ void Vulkan::Impl::setup(Window* window, const std::string& font_path, float fon
   const std::vector<vk::VertexInputAttributeDescription> attribute_description_float_3_uint8_4{
       {0, 0, vk::Format::eR32G32B32Sfloat, 0}, {1, 1, vk::Format::eR8G8B8A8Unorm, 0}};
 
+  struct Vertex {
+    float pos[3];
+    float color[3];
+    float normal[3];
+  };
+  const std::vector<vk::VertexInputBindingDescription> vkcube_binding_description_float_3_uint8_4{
+      {0, sizeof(Vertex), vk::VertexInputRate::eVertex}};
+  const std::vector<vk::VertexInputAttributeDescription>
+      vkcube_attribute_description_float_3_uint8_4{
+          {0, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, pos)},
+          {1, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, color)},
+          {2, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, normal)}};
+
   geometry_point_color_pipeline_ = create_pipeline(
       geometry_pipeline_layout_.get(),
       geometry_color_shader_glsl_vert,
@@ -1025,7 +1061,16 @@ void Vulkan::Impl::setup(Window* window, const std::string& font_path, float fon
       {},
       binding_description_float_3_uint8_4,
       attribute_description_float_3_uint8_4);
-
+  geometry_triangle_strip_color_pipeline_ =
+      create_pipeline(vkcube_pipeline_layout_.get(),
+                      vkcube_glsl_vert,
+                      sizeof(vkcube_glsl_vert) / sizeof(vkcube_glsl_vert[0]),
+                      vkcube_glsl_frag,
+                      sizeof(vkcube_glsl_frag) / sizeof(vkcube_glsl_frag[0]),
+                      vk::PrimitiveTopology::eTriangleStrip,
+                      {},
+                      vkcube_binding_description_float_3_uint8_4,
+                      vkcube_attribute_description_float_3_uint8_4);
   // create the pipeline layout for text geometry
   {
     vk::PipelineLayoutCreateInfo create_info;
@@ -1063,6 +1108,13 @@ void Vulkan::Impl::setup(Window* window, const std::string& font_path, float fon
 
 Window* Vulkan::Impl::get_window() const {
   return window_;
+}
+
+const struct timeval& Vulkan::Impl::get_start_tv() const {
+  return start_tv;
+}
+void Vulkan::Impl::set_start_tv(const struct timeval& tv) {
+  start_tv = tv;
 }
 
 void Vulkan::Impl::init_im_gui(const std::string& font_path, float font_size_in_pixels) {
@@ -2101,7 +2153,7 @@ void Vulkan::Impl::draw_texture(Texture* texture, Texture* depth_texture, Textur
 void Vulkan::Impl::draw(vk::PrimitiveTopology topology, uint32_t count, uint32_t first,
                         const std::vector<Buffer*>& vertex_buffers, float opacity,
                         const std::array<float, 4>& color, float point_size, float line_width,
-                        const nvmath::mat4f& view_matrix) {
+                        const struct ubo& ubo, const nvmath::mat4f& view_matrix) {
   const vk::CommandBuffer cmd_buf = command_buffers_[get_active_image_index()].get();
 
   switch (topology) {
@@ -2138,29 +2190,46 @@ void Vulkan::Impl::draw(vk::PrimitiveTopology topology, uint32_t count, uint32_t
                              geometry_triangle_color_pipeline_.get());
       }
       break;
+    case vk::PrimitiveTopology::eTriangleStrip:
+      cmd_buf.bindPipeline(vk::PipelineBindPoint::eGraphics,
+                           geometry_triangle_strip_color_pipeline_.get());
+
+      break;
     default:
       throw std::runtime_error("Unhandled primitive type");
   }
 
-  // push the constants
-  PushConstantFragment push_constants_fragment;
-  push_constants_fragment.opacity = opacity;
-  cmd_buf.pushConstants(geometry_pipeline_layout_.get(),
-                        vk::ShaderStageFlagBits::eFragment,
-                        sizeof(PushConstantVertex),
-                        sizeof(PushConstantFragment),
-                        &push_constants_fragment);
+  if (!(topology == vk::PrimitiveTopology::eTriangleStrip)) {
+    // push the constants
+    PushConstantFragment push_constants_fragment;
+    push_constants_fragment.opacity = opacity;
+    cmd_buf.pushConstants(geometry_pipeline_layout_.get(),
+                          vk::ShaderStageFlagBits::eFragment,
+                          sizeof(PushConstantVertex),
+                          sizeof(PushConstantFragment),
+                          &push_constants_fragment);
 
-  PushConstantVertex push_constant_vertex;
-  push_constant_vertex.matrix = view_matrix;
-  push_constant_vertex.point_size = point_size;
-  push_constant_vertex.color = color;
-  cmd_buf.pushConstants(geometry_pipeline_layout_.get(),
-                        vk::ShaderStageFlagBits::eVertex,
-                        0,
-                        sizeof(PushConstantVertex),
-                        &push_constant_vertex);
+    PushConstantVertex push_constant_vertex;
+    push_constant_vertex.matrix = view_matrix;
+    push_constant_vertex.point_size = point_size;
+    push_constant_vertex.color = color;
+    cmd_buf.pushConstants(geometry_pipeline_layout_.get(),
+                          vk::ShaderStageFlagBits::eVertex,
+                          0,
+                          sizeof(PushConstantVertex),
+                          &push_constant_vertex);
+  } else {
+    VKcubePushConstantVertex push_constant_vertex;
+    push_constant_vertex.modelview = ubo.modelview;
+    push_constant_vertex.modelviewprojection = ubo.modelviewprojection;
+    memcpy(push_constant_vertex.normal, &ubo.normal, sizeof(ubo.normal));
 
+    cmd_buf.pushConstants(vkcube_pipeline_layout_.get(),
+                          vk::ShaderStageFlagBits::eVertex,
+                          0,
+                          sizeof(VKcubePushConstantVertex),
+                          &push_constant_vertex);
+  }
   // bind the buffers
   std::vector<vk::DeviceSize> offsets(vertex_buffers.size());
   std::vector<vk::Buffer> buffers(vertex_buffers.size());
@@ -2523,6 +2592,14 @@ Window* Vulkan::get_window() const {
   return impl_->get_window();
 }
 
+const struct timeval& Vulkan::get_start_tv() const {
+  return impl_->get_start_tv();
+}
+
+void Vulkan::set_start_tv(const struct timeval& tv) {
+  impl_->set_start_tv(tv);
+}
+
 void Vulkan::begin_transfer_pass() {
   impl_->begin_transfer_pass();
 }
@@ -2604,9 +2681,17 @@ void Vulkan::draw_texture(Texture* texture, Texture* depth_texture, Texture* lut
 void Vulkan::draw(vk::PrimitiveTopology topology, uint32_t count, uint32_t first,
                   const std::vector<Buffer*>& vertex_buffers, float opacity,
                   const std::array<float, 4>& color, float point_size, float line_width,
-                  const nvmath::mat4f& view_matrix) {
-  impl_->draw(
-      topology, count, first, vertex_buffers, opacity, color, point_size, line_width, view_matrix);
+                  const struct ubo& ubo, const nvmath::mat4f& view_matrix) {
+  impl_->draw(topology,
+              count,
+              first,
+              vertex_buffers,
+              opacity,
+              color,
+              point_size,
+              line_width,
+              ubo,
+              view_matrix);
 }
 
 void Vulkan::draw_text_indexed(vk::DescriptorSet desc_set, Buffer* vertex_buffer,

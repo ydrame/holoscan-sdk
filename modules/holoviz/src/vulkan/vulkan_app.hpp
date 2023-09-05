@@ -20,6 +20,7 @@
 
 #include <cuda.h>
 #include <nvmath/nvmath_types.h>
+#include <sys/time.h>
 #include <vulkan/vulkan_core.h>
 
 #include <array>
@@ -30,11 +31,24 @@
 #include <vector>
 
 #include "../holoviz/image_format.hpp"
+#include "../util/esUtil.h"
 #include "../window.hpp"
 
 namespace holoscan::viz {
 
 class Layer;
+
+struct ubo {
+  ESMatrix modelview;
+  ESMatrix modelviewprojection;
+  float normal[12];
+};
+
+struct Vertex {
+  float pos[4];
+  float color[4];
+  float normal[3];
+};
 
 /**
  * The class is responsible for all operations regarding Vulkan.
@@ -67,6 +81,12 @@ class Vulkan {
    * @return the window used by Vulkan
    */
   Window* get_window() const;
+
+  /**
+   * @return the window used by Vulkan
+   */
+  const struct timeval& get_start_tv() const;
+  void set_start_tv(const struct timeval& tv);
 
   /**
    * Begin the transfer pass. This creates a transfer job and a command buffer.
@@ -242,7 +262,7 @@ class Vulkan {
   void draw(vk::PrimitiveTopology topology, uint32_t count, uint32_t first,
             const std::vector<Buffer*>& vertex_buffers, float opacity,
             const std::array<float, 4>& color, float point_size, float line_width,
-            const nvmath::mat4f& view_matrix = nvmath::mat4f(1));
+            const struct ubo& ubo, const nvmath::mat4f& view_matrix = nvmath::mat4f(1));
 
   /**
    * Draw indexed triangle list geometry. Used to draw ImGui draw list for text drawing.

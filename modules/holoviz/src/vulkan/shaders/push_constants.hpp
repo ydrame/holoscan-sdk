@@ -22,12 +22,21 @@
 // define GLSL types when using the header in C++ code
 using vec4 = std::array<float, 4>;
 using mat4x4 = nvmath::mat4f;
+using mat3x3 = nvmath::mat3f;
 #endif
 
 #define SAMPLE_BINDING_COLOR 0
 #define SAMPLE_BINDING_COLOR_U 1
 #define SAMPLE_BINDING_LUT 2
 #define SAMPLE_BINDING_DEPTH 3
+
+#include "../../util/esUtil.h"
+
+struct VKcubePushConstantVertex {
+  ESMatrix modelview;
+  ESMatrix modelviewprojection;
+  float normal[12];
+};
 
 struct PushConstantVertex {
   mat4x4 matrix;

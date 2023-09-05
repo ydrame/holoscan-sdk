@@ -194,24 +194,30 @@ nvidia::gxf::Expected<viz::ImageFormat> getImageFormatFromTensor(const BufferInf
 }
 
 /// table to convert input type to string
-static const std::array<std::pair<holoscan::ops::HolovizOp::InputType, std::string>, 17>
-    kInputTypeToStr{{{holoscan::ops::HolovizOp::InputType::UNKNOWN, "unknown"},
-                     {holoscan::ops::HolovizOp::InputType::COLOR, "color"},
-                     {holoscan::ops::HolovizOp::InputType::COLOR_LUT, "color_lut"},
-                     {holoscan::ops::HolovizOp::InputType::POINTS, "points"},
-                     {holoscan::ops::HolovizOp::InputType::LINES, "lines"},
-                     {holoscan::ops::HolovizOp::InputType::LINE_STRIP, "line_strip"},
-                     {holoscan::ops::HolovizOp::InputType::TRIANGLES, "triangles"},
-                     {holoscan::ops::HolovizOp::InputType::CROSSES, "crosses"},
-                     {holoscan::ops::HolovizOp::InputType::RECTANGLES, "rectangles"},
-                     {holoscan::ops::HolovizOp::InputType::OVALS, "ovals"},
-                     {holoscan::ops::HolovizOp::InputType::TEXT, "text"},
-                     {holoscan::ops::HolovizOp::InputType::DEPTH_MAP, "depth_map"},
-                     {holoscan::ops::HolovizOp::InputType::DEPTH_MAP_COLOR, "depth_map_color"},
-                     {holoscan::ops::HolovizOp::InputType::POINTS_3D, "points_3d"},
-                     {holoscan::ops::HolovizOp::InputType::LINES_3D, "lines_3d"},
-                     {holoscan::ops::HolovizOp::InputType::LINE_STRIP_3D, "line_strip_3d"},
-                     {holoscan::ops::HolovizOp::InputType::TRIANGLES_3D, "triangles_3d"}}};
+static const std::array<std::pair<holoscan::ops::HolovizOp::InputType, std::string>, 18>
+    kInputTypeToStr{{
+        {holoscan::ops::HolovizOp::InputType::UNKNOWN, "unknown"},
+        {holoscan::ops::HolovizOp::InputType::COLOR, "color"},
+        {holoscan::ops::HolovizOp::InputType::COLOR_LUT, "color_lut"},
+        {holoscan::ops::HolovizOp::InputType::POINTS, "points"},
+        {holoscan::ops::HolovizOp::InputType::LINES, "lines"},
+        {holoscan::ops::HolovizOp::InputType::LINE_STRIP, "line_strip"},
+        {holoscan::ops::HolovizOp::InputType::TRIANGLES, "triangles"},
+        {holoscan::ops::HolovizOp::InputType::CROSSES, "crosses"},
+        {holoscan::ops::HolovizOp::InputType::RECTANGLES, "rectangles"},
+        {holoscan::ops::HolovizOp::InputType::OVALS, "ovals"},
+        {holoscan::ops::HolovizOp::InputType::TEXT, "text"},
+        {holoscan::ops::HolovizOp::InputType::DEPTH_MAP, "depth_map"},
+        {holoscan::ops::HolovizOp::InputType::DEPTH_MAP_COLOR, "depth_map_color"},
+        {holoscan::ops::HolovizOp::InputType::POINTS_3D, "points_3d"},
+        {holoscan::ops::HolovizOp::InputType::LINES_3D, "lines_3d"},
+        {holoscan::ops::HolovizOp::InputType::LINE_STRIP_3D, "line_strip_3d"},
+        {holoscan::ops::HolovizOp::InputType::TRIANGLES_3D, "triangles_3d"},
+        {holoscan::ops::HolovizOp::InputType::VBO, "vbo"}
+        //{holoscan::ops::HolovizOp::InputType::VBO_VERTICES, "vbo_vertices"},
+        //{holoscan::ops::HolovizOp::InputType::VBO_COLORS, "vbo_colors"},
+        //{holoscan::ops::HolovizOp::InputType::VBO_NORMALS, "vbo_normals"}
+    }};
 
 /**
  * Convert a string to a input type enum
@@ -472,7 +478,7 @@ void HolovizOp::setup(OperatorSpec& spec) {
   constexpr uint32_t DEFAULT_WIDTH = 1920;
   constexpr uint32_t DEFAULT_HEIGHT = 1080;
   constexpr float DEFAULT_FRAMERATE = 60.f;
-  static const std::string DEFAULT_WINDOW_TITLE("Holoviz");
+  static const std::string DEFAULT_WINDOW_TITLE(" Holoviz ");
   static const std::string DEFAULT_DISPLAY_NAME("DP-0");
   constexpr bool DEFAULT_EXCLUSIVE_DISPLAY = false;
   constexpr bool DEFAULT_FULLSCREEN = false;
@@ -513,7 +519,7 @@ void HolovizOp::setup(OperatorSpec& spec) {
       "Input Tensors",
       "List of input tensors. 'name' is required, 'type' is optional (unknown, color, color_lut, "
       "points, lines, line_strip, triangles, crosses, rectangles, ovals, text, points_3d, "
-      "lines_3d, line_strip_3d, triangles_3d).",
+      "lines_3d, line_strip_3d, triangles_3d, vbo).",
       std::vector<InputSpec>());
 
   spec.param(color_lut_,
@@ -1088,7 +1094,8 @@ void HolovizOp::compute(InputContext& op_input, OutputContext& op_output,
       case InputType::POINTS_3D:
       case InputType::LINES_3D:
       case InputType::LINE_STRIP_3D:
-      case InputType::TRIANGLES_3D: {
+      case InputType::TRIANGLES_3D:
+      case InputType::VBO: {
         // geometry layer
         if (buffer_info.element_type != nvidia::gxf::PrimitiveType::kFloat32) {
           throw std::runtime_error(fmt::format(
@@ -1290,6 +1297,21 @@ void HolovizOp::compute(InputContext& op_input, OutputContext& op_output,
               values_per_coordinate = 3;
               default_coord = {0.f, 0.f};
               break;
+
+            case InputType::VBO:
+              // triangle primitive, three coordinates (x0, y0, z0), (x1, y1, z1) and (x2, y2, z2)
+              // per primitive
+              if (components != 3) {
+                throw std::runtime_error(fmt::format(
+                    "Expected three values per 3D triangle vertex, but got '{}'", components));
+              }
+              topology = viz::PrimitiveTopology::VBO;
+              primitive_count = coordinates / 9;
+              coordinate_count = primitive_count * 9;
+              values_per_coordinate = 3;
+              default_coord = {0.f, 0.f, 0.f};
+              break;
+
             default:
               throw std::runtime_error(
                   fmt::format("Unhandled tensor type '{}'", inputTypeToString(input_spec.type_)));

@@ -43,7 +43,8 @@ enum class PrimitiveTopology {
                      ///  each coordinate (xi, yi, zi) and (xi+1, yi+1, zi+1) per
                      ///  primitive
   TRIANGLE_LIST_3D,  ///< 3D triangle primitive, three coordinates
-                     ///  (x0, y0, z0), (x1, y1, z1) and (x2, y2, z2) per primitive
+                     ///  (x0, y0, z0), (x1, y1, z1) and (x2, y2, z2) per primitive,
+  VBO
 };
 
 }  // namespace holoscan::viz

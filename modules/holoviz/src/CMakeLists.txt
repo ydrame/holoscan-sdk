@@ -36,6 +36,8 @@ list(APPEND GLSL_SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/vulkan/shaders/geomet
 list(APPEND GLSL_SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/vulkan/shaders/geometry_text_shader.glsl.vert")
 list(APPEND GLSL_SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/vulkan/shaders/image_shader.glsl.frag")
 list(APPEND GLSL_SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/vulkan/shaders/image_shader.glsl.vert")
+list(APPEND GLSL_SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/vulkan/shaders/vkcube.glsl.frag")
+list(APPEND GLSL_SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/vulkan/shaders/vkcube.glsl.vert")
 
 set(GLSLANGVALIDATOR ${Vulkan_GLSLANG_VALIDATOR_EXECUTABLE})
 compile_glsl(
@@ -66,6 +68,8 @@ target_sources(${PROJECT_NAME}
         layers/image_layer.cpp
         layers/im_gui_layer.cpp
         layers/layer.cpp
+
+        util/esTransform.c
 
         vulkan/framebuffer_sequence.cpp
         vulkan/vulkan_app.cpp

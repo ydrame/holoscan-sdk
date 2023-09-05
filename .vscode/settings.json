@@ -206,6 +206,7 @@
     "isort.importStrategy": "fromEnvironment",
     "isort.check": true,
     "cpplint.cpplintPath": "/home/holoscan-sdk/.local/bin/cpplint",
+    "cmake.cmakePath": "cmake",
     // It seems that Pytest Discovery feature in VSCode needs to be improved
     // - https://github.com/microsoft/vscode-python/issues/17242
     // - https://github.com/microsoft/vscode-python/issues/19790

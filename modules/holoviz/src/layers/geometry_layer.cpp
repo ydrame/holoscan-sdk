@@ -297,6 +297,11 @@ void GeometryLayer::primitive(PrimitiveTopology topology, uint32_t primitive_cou
       vertex_counts.push_back(required_data_size / 3);
       vkTopology = vk::PrimitiveTopology::eTriangleList;
       break;
+    case PrimitiveTopology::VBO:
+      required_data_size = primitive_count * 3 * 9;
+      vertex_counts.push_back(required_data_size / 9);
+      vkTopology = vk::PrimitiveTopology::eTriangleStrip;
+      break;
   }
 
   if (data_size < required_data_size) {
@@ -373,6 +378,7 @@ void GeometryLayer::end(Vulkan* vulkan) {
 
     // only crosses depend on the aspect ratio
     bool has_crosses = false;
+
     for (auto&& primitive : impl_->primitives_) {
       if (primitive.topology_ == PrimitiveTopology::CROSS_LIST) {
         has_crosses = true;
@@ -395,7 +401,15 @@ void GeometryLayer::end(Vulkan* vulkan) {
 
       // setup the vertex buffer
       std::vector<float> vertices;
-      vertices.reserve(impl_->vertex_count_ * 3);
+      bool has_vbo = false;
+      for (auto&& primitive : impl_->primitives_) {
+        if (primitive.topology_ == PrimitiveTopology::VBO) {
+          has_vbo = true;
+          break;
+        }
+      }
+      int size = has_vbo ? 9 : 3;
+      vertices.reserve(impl_->vertex_count_ * size);
 
       for (auto&& primitive : impl_->primitives_) {
         switch (primitive.topology_) {
@@ -451,6 +465,28 @@ void GeometryLayer::end(Vulkan* vulkan) {
           case PrimitiveTopology::LINE_STRIP_3D:
           case PrimitiveTopology::TRIANGLE_LIST_3D:
             vertices.insert(vertices.end(), primitive.data_.begin(), primitive.data_.end());
+            break;
+          case PrimitiveTopology::VBO:
+            for (uint32_t index = 0; index < primitive.primitive_count_ * 3; ++index) {
+              vertices.insert(vertices.end(),
+                              {
+                                  // Vertices
+                                  primitive.data_[index * 3 + 0],
+                                  primitive.data_[index * 3 + 1],
+                                  primitive.data_[index * 3 + 2],
+                                  // primitive.data_[index * 3 + 3],
+                                  //  Colors
+                                  primitive.data_[24 * 3 + index * 3 + 0],
+                                  primitive.data_[24 * 3 + index * 3 + 1],
+                                  primitive.data_[24 * 3 + index * 3 + 2],
+                                  //  primitive.data_[24 + index * 3 + 3],
+                                  // Normals
+                                  primitive.data_[48 * 3 + index * 3 + 0],
+                                  primitive.data_[48 * 3 + index * 3 + 1],
+                                  primitive.data_[48 * 3 + index * 3 + 2],
+                                  //  primitive.data_[48 + index * 3 + 2]
+                              });
+            }
             break;
         }
       }
@@ -688,6 +724,37 @@ void GeometryLayer::end(Vulkan* vulkan) {
 }
 
 void GeometryLayer::render(Vulkan* vulkan) {
+  struct ubo ubo;
+  struct timeval tv, start_tv;
+  uint64_t t;
+
+  gettimeofday(&tv, NULL);
+  start_tv = vulkan->get_start_tv();
+
+  t = ((tv.tv_sec * 1000 + tv.tv_usec / 1000) -
+       (start_tv.tv_sec * 1000 + start_tv.tv_usec / 1000)) /
+      5;
+
+  esMatrixLoadIdentity(&ubo.modelview);
+  esTranslate(&ubo.modelview, 0.0f, 0.0f, -8.0f);
+  esRotate(&ubo.modelview, 45.0f + (0.25f * t), 1.0f, 0.0f, 0.0f);
+  esRotate(&ubo.modelview, 45.0f - (0.5f * t), 0.0f, 1.0f, 0.0f);
+  esRotate(&ubo.modelview, 10.0f + (0.15f * t), 0.0f, 0.0f, 1.0f);
+
+  uint32_t width, height;
+  vulkan->get_window()->get_framebuffer_size(&width, &height);
+
+  float aspect = (float)height / (float)width;
+  ESMatrix projection;
+  esMatrixLoadIdentity(&projection);
+  esFrustum(&projection, -2.8f, +2.8f, -2.8f * aspect, +2.8f * aspect, 6.0f, 10.0f);
+
+  esMatrixLoadIdentity(&ubo.modelviewprojection);
+  esMatrixMultiply(&ubo.modelviewprojection, &ubo.modelview, &projection);
+
+  /* The mat3 normalMatrix is laid out as 3 vec4s. */
+  memcpy(ubo.normal, &ubo.modelview, sizeof ubo.normal);
+
   // setup the 2D view matrix in a way that geometry coordinates are in the range [0...1]
   nvmath::mat4f view_matrix_2d_base;
   view_matrix_2d_base.identity();
@@ -721,6 +788,7 @@ void GeometryLayer::render(Vulkan* vulkan) {
                      primitive.attributes_.color_,
                      primitive.attributes_.point_size_,
                      primitive.attributes_.line_width_,
+                     ubo,
                      primitive.three_dimensional() ? view_matrix_3d : view_matrix_2d);
         vertex_offset += vertex_count;
       }
@@ -769,6 +837,7 @@ void GeometryLayer::render(Vulkan* vulkan) {
                                depth_map.attributes_.line_width_,
                                view_matrix_3d);
         } else if (depth_map.render_mode_ == DepthMapRenderMode::POINTS) {
+          struct ubo ubo;
           vulkan->draw(vk::PrimitiveTopology::ePointList,
                        depth_map.width_ * depth_map.height_,
                        depth_map.vertex_offset_,
@@ -777,6 +846,7 @@ void GeometryLayer::render(Vulkan* vulkan) {
                        depth_map.attributes_.color_,
                        depth_map.attributes_.point_size_,
                        depth_map.attributes_.line_width_,
+                       ubo,
                        view_matrix_3d);
         } else {
           throw std::runtime_error("Unhandled depth render mode.");
