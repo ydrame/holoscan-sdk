@@ -293,7 +293,11 @@ class HolovizOp : public Operator {
                     ///< (xi, yi, zi) and the following (xi+1, yi+1, zi+1)
     TRIANGLES_3D,  ///< 3D triangle primitive, three coordinates (x0, y0, z0), (x1, y1, z1) and (x2,
                    ///< y2, z2) per primitive,
-    VBO
+    VBO,
+
+    UPDATE,
+
+    TRANSFORM
   };
 
   /**
@@ -338,6 +342,8 @@ class HolovizOp : public Operator {
     std::vector<float> color_{1.f, 1.f, 1.f, 1.f};  ///< color of rendered geometry
     float line_width_ = 1.f;                        ///< line width for geometry made of lines
     float point_size_ = 1.f;                        ///< point size for geometry made of points
+    std::vector<std::string> transform_names = {std::string("identity")};
+    std::vector<std::array<float, 6>> transform_values;
     std::vector<std::string> text_;  ///< array of text strings, used when type_ is TEXT.
     DepthMapRenderMode depth_map_render_mode_ =
         DepthMapRenderMode::POINTS;  ///< depth map render mode, used if type_ is

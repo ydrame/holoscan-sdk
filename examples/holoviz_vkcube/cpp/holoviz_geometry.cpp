@@ -16,6 +16,7 @@
  */
 #include <getopt.h>
 
+#include <sys/time.h>
 #include <memory>
 #include <string>
 #include <vector>
@@ -26,6 +27,8 @@
 
 #include <gxf/std/tensor.hpp>
 
+#include "util/esUtil.h"
+
 namespace holoscan::ops {
 
 /**
@@ -34,6 +37,7 @@ namespace holoscan::ops {
  *  This operator has:
  *       outputs: "output_tensor"
  *       output_specs: "output_specs"
+ *       transform_specs : "transform_specs"
  */
 class GeometrySourceOp : public Operator {
  public:
@@ -54,6 +58,9 @@ class GeometrySourceOp : public Operator {
   void setup(OperatorSpec& spec) override {
     spec.output<gxf::Entity>("outputs");
     // spec.output<std::vector<HolovizOp::InputSpec>>("output_specs");
+    spec.output<std::vector<HolovizOp::InputSpec>>("transform_specs");
+
+    gettimeofday(&start_tv, NULL);
   }
 
   /**
@@ -79,89 +86,7 @@ class GeometrySourceOp : public Operator {
     auto entity = gxf::Entity::New(&context);
     auto specs = std::vector<HolovizOp::InputSpec>();
 
-    // Now draw various different types of geometric primitives.
-    // In all cases, x and y are normalized coordinates in the range [0, 1].
-    // x runs from left to right and y from bottom to top. All coordinates
-    // should be defined using a single precision float data type.
-
-    ///////////////////////////////////////////
-    // Create a tensor defining four rectnagles
-    ///////////////////////////////////////////
-    // For rectangles (bounding boxes), they are defined by a pair of
-    // 2-tuples defining the upper-left and lower-right coordinates of a
-    // box: (x1, y1), (x2, y2).
-    /* add_data<8, 2>(entity,
-                    "boxes",
-                    {{{0.1f, 0.2f},
-                      {0.8f, 0.5f},
-                      {0.2f, 0.4f},
-                      {0.3f, 0.6f},
-                      {0.3f, 0.5f},
-                      {0.4f, 0.7f},
-                      {0.5f, 0.7f},
-                      {0.6f, 0.9f}}},
-                    context);
-
-     /////////////////////////////////////////
-     // Create a tensor defining two triangles
-     /////////////////////////////////////////
-     // Each triangle is defined by a set of 3 (x, y) coordinate pairs.
-     add_data<6, 2>(entity,
-                    "triangles",
-                    {{{0.1f, 0.8f},
-                      {0.18f, 0.75f},
-                      {0.14f, 0.66f},
-                      {0.3f, 0.8f},
-                      {0.38f, 0.75f},
-                      {0.34f, 0.56f}}},
-                    context);
-
-     ///////////////////////////////////////
-     // Create a tensor defining two crosses
-     ///////////////////////////////////////
-     // Each cross is defined by an (x, y, size) 3-tuple
-     add_data<2, 3>(entity, "crosses", {{{0.25f, 0.25f, 0.05f}, {0.75f, 0.25f, 0.10f}}}, context);
-
-     ///////////////////////////////////////
-     // Create a tensor defining three ovals
-     ///////////////////////////////////////
-     // Each oval is defined by an (x, y, size_x, size_y) 4-tuple
-     add_data<3, 4>(entity,
-                    "ovals",
-                    {{{0.25f, 0.65f, 0.10f, 0.05f},
-                      {0.25f, 0.65f, 0.10f, 0.05f},
-                      {0.75f, 0.65f, 0.05f, 0.10f}}},
-                    context);
-
-     ////////////////////////////////////////
-     // Create a time-varying "points" tensor
-     ////////////////////////////////////////
-     // Set of (x, y) points with 50 points equally spaced along x whose y
-     // coordinate varies sinusoidally over time.
-     constexpr uint32_t POINTS = 50;
-     constexpr float PI = 3.14f;
-     std::array<std::array<float, 2>, POINTS> point_coords;
-     for (uint32_t i = 0; i < POINTS; ++i) {
-       point_coords[i][0] = (1.f / POINTS) * i;
-       point_coords[i][1] =
-           0.8f + 0.1f * std::sin(8.f * PI * point_coords[i][0] + count_ / 60.f * 2.f * PI);
-     }
-
-     add_data(entity, "points", point_coords, context);
-
-     /////////////////////////////////////
-     // Create a tensor for "label_coords"
-     /////////////////////////////////////
-     // Set of two (x, y) points marking the location of text labels
-     add_data<2, 2>(entity, "label_coords", {{{0.10f, 0.1f}, {0.70f, 0.1f}}}, context);
-
-     /////////////////////////////////////
-     // Create a tensor for "dynamic_text"
-     /////////////////////////////////////
-     // Set of two (x, y) points marking the location of text labels
-     add_data<2, 2>(entity, "dynamic_text", {{{0.f, 0.f}}}, context);
-     */
-
+    // if (count_ == 0) {
     add_data<72, 3>(entity,
                     "vbo",
                     {{
@@ -257,140 +182,63 @@ class GeometrySourceOp : public Operator {
                         {+0.0f, -1.0f, +0.0f}   // down
                     }},
                     context);
+    add_data<2, 2>(entity, "transforms", {{{0.f, 0.f}}}, context);
+    add_data<1, 1>(entity, "update", {{{1.0f}}}, context);
 
-    /*add_data<8, 2>(entity,
-                   "vbo_vertices",
-                   {{
-                       {-1.0f, -1.0f, +1.0f},  // point blue
-                       {+1.0f, -1.0f, +1.0f},  // point magenta
-                       {-1.0f, +1.0f, +1.0f},  // point cyan
-                       {+1.0f, +1.0f, +1.0f},  // point white
-                       // back
-                       {+1.0f, -1.0f, -1.0f},  // point red
-                       {-1.0f, -1.0f, -1.0f},  // point black
-                       {+1.0f, +1.0f, -1.0f},  // point yellow
-                       {-1.0f, +1.0f, -1.0f},  // point green
-                       // right
-                       {+1.0f, -1.0f, +1.0f},  // point magenta
-                       {+1.0f, -1.0f, -1.0f},  // point red
-                       {+1.0f, +1.0f, +1.0f},  // point white
-                       {+1.0f, +1.0f, -1.0f},  // point yellow
-                       // left
-                       {-1.0f, -1.0f, -1.0f},  // point black
-                       {-1.0f, -1.0f, +1.0f},  // point blue
-                       {-1.0f, +1.0f, -1.0f},  // point green
-                       {-1.0f, +1.0f, +1.0f},  // point cyan
-                       // top
-                       {-1.0f, +1.0f, +1.0f},  // point cyan
-                       {+1.0f, +1.0f, +1.0f},  // point white
-                       {-1.0f, +1.0f, -1.0f},  // point green
-                       {+1.0f, +1.0f, -1.0f},  // point yellow
-                       // bottom
-                       {-1.0f, -1.0f, -1.0f},  // point black
-                       {+1.0f, -1.0f, -1.0f},  // point red
-                       {-1.0f, -1.0f, +1.0f},  // point blue
-                       {+1.0f, -1.0f, +1.0f}   // point magenta
-                   }},
-                   context);
-
-    add_data<8, 2>(entity,
-                   "vbo_colors",
-                   {{
-                       // front
-                       {0.0f, 0.0f, 1.0f},  // blue
-                       {1.0f, 0.0f, 1.0f},  // magenta
-                       {0.0f, 1.0f, 1.0f},  // cyan
-                       {1.0f, 1.0f, 1.0f},  // white
-                                            // back
-                       {1.0f, 0.0f, 0.0f},  // red
-                       {0.0f, 0.0f, 0.0f},  // black
-                       {1.0f, 1.0f, 0.0f},  // yellow
-                       {0.0f, 1.0f, 0.0f},  // green
-                                            // right
-                       {1.0f, 0.0f, 1.0f},  // magenta
-                       {1.0f, 0.0f, 0.0f},  // red
-                       {1.0f, 1.0f, 1.0f},  // white
-                       {1.0f, 1.0f, 0.0f},  // yellow
-                                            // left
-                       {0.0f, 0.0f, 0.0f},  // black
-                       {0.0f, 0.0f, 1.0f},  // blue
-                       {0.0f, 1.0f, 0.0f},  // green
-                       {0.0f, 1.0f, 1.0f},  // cyan
-                                            // top
-                       {0.0f, 1.0f, 1.0f},  // cyan
-                       {1.0f, 1.0f, 1.0f},  // white
-                       {0.0f, 1.0f, 0.0f},  // green
-                       {1.0f, 1.0f, 0.0f},  // yellow
-                                            // bottom
-                       {0.0f, 0.0f, 0.0f},  // black
-                       {1.0f, 0.0f, 0.0f},  // red
-                       {0.0f, 0.0f, 1.0f},  // blue
-                       {1.0f, 0.0f, 1.0f}   // magenta
-                   }},
-                   context);
-
-    add_data<8, 2>(entity,
-                   "vbo_normals",
-                   {{
-                       // front
-                       {+0.0f, +0.0f, +1.0f},  // forward
-                       {+0.0f, +0.0f, +1.0f},  // forward
-                       {+0.0f, +0.0f, +1.0f},  // forward
-                       {+0.0f, +0.0f, +1.0f},  // forward
-                                               // back
-                       {+0.0f, +0.0f, -1.0f},  // backbard
-                       {+0.0f, +0.0f, -1.0f},  // backbard
-                       {+0.0f, +0.0f, -1.0f},  // backbard
-                       {+0.0f, +0.0f, -1.0f},  // backbard
-                                               // right
-                       {+1.0f, +0.0f, +0.0f},  // right
-                       {+1.0f, +0.0f, +0.0f},  // right
-                       {+1.0f, +0.0f, +0.0f},  // right
-                       {+1.0f, +0.0f, +0.0f},  // right
-                                               // left
-                       {-1.0f, +0.0f, +0.0f},  // left
-                       {-1.0f, +0.0f, +0.0f},  // left
-                       {-1.0f, +0.0f, +0.0f},  // left
-                       {-1.0f, +0.0f, +0.0f},  // left
-                                               // top
-                       {+0.0f, +1.0f, +0.0f},  // up
-                       {+0.0f, +1.0f, +0.0f},  // up
-                       {+0.0f, +1.0f, +0.0f},  // up
-                       {+0.0f, +1.0f, +0.0f},  // up
-                                               // bottom
-                       {+0.0f, -1.0f, +0.0f},  // down
-                       {+0.0f, -1.0f, +0.0f},  // down
-                       {+0.0f, -1.0f, +0.0f},  // down
-                       {+0.0f, -1.0f, +0.0f}   // down
-                   }},
-                   context);
-                   */
-    // emit the tensors
     op_output.emit(entity, "outputs");
 
-    /////////////////////////////////////////
-    // Create a input spec for "dynamic_text"
-    /////////////////////////////////////////
-    // To dynamically change the input spec create a list of HolovizOp.InputSpec objects
-    // and pass it to Holoviz.
-    // All properties of the input spec (type, color, text, line width, ...) can be changed
-    // dynamically.
-    /*HolovizOp::InputSpec spec;
-    spec.tensor_name_ = "dynamic_text";
-    spec.type_ = HolovizOp::InputType::TEXT;
-    spec.text_.push_back(std::string("Frame ") + std::to_string(count_));
+    HolovizOp::InputSpec spec;
+    spec.tensor_name_ = "transforms";
+    spec.type_ = HolovizOp::InputType::TRANSFORM;
+
+    struct timeval tv;
+    uint64_t t;
+
+    gettimeofday(&tv, NULL);
+
+    t = ((tv.tv_sec * 1000 + tv.tv_usec / 1000) -
+         (start_tv.tv_sec * 1000 + start_tv.tv_usec / 1000)) /
+        5;
+
+    // spec.text_.push_back(std::string("Frame ") + std::to_string(count_));
+    spec.transform_names.push_back(std::string("translation"));
+    spec.transform_values.push_back({0.0f, 0.0f, -8.0f});
+
+    spec.transform_names.push_back(std::string("rotation"));
+    spec.transform_values.push_back({45.0f + (0.25f * t), 1.0f, 0.0f, 0.0f});
+
+    spec.transform_names.push_back(std::string("rotation"));
+    spec.transform_values.push_back({45.0f - (0.5f * t), 0.0f, 1.0f, 0.0f});
+
+    spec.transform_names.push_back(std::string("rotation"));
+    spec.transform_values.push_back({10.0f + (0.15f * t), 0.0f, 0.0f, 1.0f});
+
+    spec.transform_names.push_back(std::string("frustum"));
+    spec.transform_values.push_back({2.8f, +2.8f, -2.8f, +2.8f, 6.0f, 10.0f});
+
     specs.push_back(spec);
 
-    // emit the output specs
-    op_output.emit(specs, "output_specs");
-    */
+    // emit the transformspecs
+    op_output.emit(specs, "transform_specs");
+
+    /*} else {
+      add_data<1, 1>(entity, "update", {{{1.0f}}}, context);
+      op_output.emit(entity, "outputs");
+    }*/
 
     count_++;
   }
+  struct ubo {
+    ESMatrix modelview;
+    ESMatrix modelviewprojection;
+    float normal[12];
+  };
 
  private:
   std::shared_ptr<UnboundedAllocator> allocator_;
   uint32_t count_ = 0;
+  struct timeval start_tv;
+  struct ubo ubo;
 };
 
 }  // namespace holoscan::ops
@@ -439,83 +287,92 @@ class HolovizGeometryApp : public holoscan::Application {
     std::vector<ops::HolovizOp::InputSpec> input_spec;
     int32_t priority = 0;
 
-    // Parameters defining the vbo primitives
     auto& vbo_spec =
         input_spec.emplace_back(ops::HolovizOp::InputSpec("vbo", ops::HolovizOp::InputType::VBO));
     vbo_spec.color_ = {1.0f, 1.0f, 1.0f, 1.0f};
     vbo_spec.priority_ = priority++;
 
+    // Parameters defining the vbo primitives
+    auto& update_spec = input_spec.emplace_back(
+        ops::HolovizOp::InputSpec("update", ops::HolovizOp::InputType::UPDATE));
+    update_spec.priority_ = priority++;
+
+    // Parameters defining the vbo primitives
+    auto& tranform_spec = input_spec.emplace_back(
+        ops::HolovizOp::InputSpec("transforms", ops::HolovizOp::InputType::TRANSFORM));
+    tranform_spec.priority_ = priority++;
     /*auto& video_spec =
-        input_spec.emplace_back(ops::HolovizOp::InputSpec("", ops::HolovizOp::InputType::COLOR));
-    video_spec.line_width_ = 2.f;
-    video_spec.opacity_ = 0.5f;
-    video_spec.priority_ = priority++;
+      input_spec.emplace_back(ops::HolovizOp::InputSpec("", ops::HolovizOp::InputType::COLOR));
+  video_spec.line_width_ = 2.f;
+  video_spec.opacity_ = 0.5f;
+  video_spec.priority_ = priority++;
 
-    // Parameters defining the rectangle primitives
-    auto& boxes_spec = input_spec.emplace_back(
-        ops::HolovizOp::InputSpec("boxes", ops::HolovizOp::InputType::RECTANGLES));
-    boxes_spec.line_width_ = 2.f;
-    boxes_spec.color_ = {1.0f, 0.0f, 1.0f, 0.5f};
-    boxes_spec.priority_ = priority++;
+  // Parameters defining the rectangle primitives
+  auto& boxes_spec = input_spec.emplace_back(
+      ops::HolovizOp::InputSpec("boxes", ops::HolovizOp::InputType::RECTANGLES));
+  boxes_spec.line_width_ = 2.f;
+  boxes_spec.color_ = {1.0f, 0.0f, 1.0f, 0.5f};
+  boxes_spec.priority_ = priority++;
 
-    // line strip reuses the rectangle coordinates. This will make
-    // a connected set of line segments through the diagonals of
-    // each box.
-    auto& line_strip_spec = input_spec.emplace_back(
-        ops::HolovizOp::InputSpec("boxes", ops::HolovizOp::InputType::LINE_STRIP));
-    line_strip_spec.line_width_ = 3.f;
-    line_strip_spec.color_ = {0.4f, 0.4f, 1.0f, 0.7f};
-    line_strip_spec.priority_ = priority++;
+  // line strip reuses the rectangle coordinates. This will make
+  // a connected set of line segments through the diagonals of
+  // each box.
+  auto& line_strip_spec = input_spec.emplace_back(
+      ops::HolovizOp::InputSpec("boxes", ops::HolovizOp::InputType::LINE_STRIP));
+  line_strip_spec.line_width_ = 3.f;
+  line_strip_spec.color_ = {0.4f, 0.4f, 1.0f, 0.7f};
+  line_strip_spec.priority_ = priority++;
 
-    // Lines also reuses the boxes coordinates so will plot a set of
-    // disconnected line segments along the box diagonals.
-    auto& lines_spec = input_spec.emplace_back(
-        ops::HolovizOp::InputSpec("boxes", ops::HolovizOp::InputType::LINES));
-    lines_spec.line_width_ = 3.f;
-    lines_spec.color_ = {0.4f, 1.0f, 0.4f, 0.7f};
-    lines_spec.priority_ = priority++;
+  // Lines also reuses the boxes coordinates so will plot a set of
+  // disconnected line segments along the box diagonals.
+  auto& lines_spec = input_spec.emplace_back(
+      ops::HolovizOp::InputSpec("boxes", ops::HolovizOp::InputType::LINES));
+  lines_spec.line_width_ = 3.f;
+  lines_spec.color_ = {0.4f, 1.0f, 0.4f, 0.7f};
+  lines_spec.priority_ = priority++;
 
-    // Parameters defining the triangle primitives
-    auto& triangles_spec = input_spec.emplace_back(
-        ops::HolovizOp::InputSpec("triangles", ops::HolovizOp::InputType::TRIANGLES));
-    triangles_spec.color_ = {1.0f, 0.0f, 0.0f, 0.5f};
-    triangles_spec.priority_ = priority++;
+  // Parameters defining the triangle primitives
+  auto& triangles_spec = input_spec.emplace_back(
+      ops::HolovizOp::InputSpec("triangles", ops::HolovizOp::InputType::TRIANGLES));
+  triangles_spec.color_ = {1.0f, 0.0f, 0.0f, 0.5f};
+  triangles_spec.priority_ = priority++;
 
-    // Parameters defining the crosses primitives
-    auto& crosses_spec = input_spec.emplace_back(
-        ops::HolovizOp::InputSpec("crosses", ops::HolovizOp::InputType::CROSSES));
-    crosses_spec.line_width_ = 3.f;
-    crosses_spec.color_ = {0.0f, 1.0f, 0.0f, 1.0f};
-    crosses_spec.priority_ = priority++;
+  // Parameters defining the crosses primitives
+  auto& crosses_spec = input_spec.emplace_back(
+      ops::HolovizOp::InputSpec("crosses", ops::HolovizOp::InputType::CROSSES));
+  crosses_spec.line_width_ = 3.f;
+  crosses_spec.color_ = {0.0f, 1.0f, 0.0f, 1.0f};
+  crosses_spec.priority_ = priority++;
 
-    // Parameters defining the ovals primitives
-    auto& ovals_spec = input_spec.emplace_back(
-        ops::HolovizOp::InputSpec("ovals", ops::HolovizOp::InputType::OVALS));
-    ovals_spec.opacity_ = 0.5f;
-    ovals_spec.line_width_ = 2.f;
-    ovals_spec.color_ = {1.0f, 1.0f, 1.0f, 1.0f};
-    ovals_spec.priority_ = priority++;
+  // Parameters defining the ovals primitives
+  auto& ovals_spec = input_spec.emplace_back(
+      ops::HolovizOp::InputSpec("ovals", ops::HolovizOp::InputType::OVALS));
+  ovals_spec.opacity_ = 0.5f;
+  ovals_spec.line_width_ = 2.f;
+  ovals_spec.color_ = {1.0f, 1.0f, 1.0f, 1.0f};
+  ovals_spec.priority_ = priority++;
 
-    // Parameters defining the points primitives
-    auto& points_spec = input_spec.emplace_back(
-        ops::HolovizOp::InputSpec("points", ops::HolovizOp::InputType::POINTS));
-    points_spec.point_size_ = 4.f;
-    points_spec.color_ = {1.0f, 1.0f, 1.0f, 1.0f};
-    points_spec.priority_ = priority++;
+  // Parameters defining the points primitives
+  auto& points_spec = input_spec.emplace_back(
+      ops::HolovizOp::InputSpec("points", ops::HolovizOp::InputType::POINTS));
+  points_spec.point_size_ = 4.f;
+  points_spec.color_ = {1.0f, 1.0f, 1.0f, 1.0f};
+  points_spec.priority_ = priority++;
 
-    // Parameters defining the label_coords primitives
-    auto& label_coords_spec = input_spec.emplace_back(
-        ops::HolovizOp::InputSpec("label_coords", ops::HolovizOp::InputType::TEXT));
-    label_coords_spec.color_ = {1.0f, 1.0f, 1.0f, 1.0f};
-    label_coords_spec.text_ = {"label_1", "label_2"};
-    label_coords_spec.priority_ = priority++;
-    */
+  // Parameters defining the label_coords primitives
+  auto& label_coords_spec = input_spec.emplace_back(
+      ops::HolovizOp::InputSpec("label_coords", ops::HolovizOp::InputType::TEXT));
+  label_coords_spec.color_ = {1.0f, 1.0f, 1.0f, 1.0f};
+  label_coords_spec.text_ = {"label_1", "label_2"};
+  label_coords_spec.priority_ = priority++;
+  */
 
     auto visualizer = make_operator<ops::HolovizOp>(
         "holoviz", Arg("width", 854u), Arg("height", 480u), Arg("tensors", input_spec));
 
     // Define the workflow: source -> holoviz
     add_flow(source, visualizer, {{"outputs", "receivers"}});
+    add_flow(source, visualizer, {{"transform_specs", "input_transform_specs"}});
     // add_flow(source, visualizer, {{"output_specs", "input_specs"}});
     //  add_flow(replayer, visualizer, {{"output", "receivers"}});
   }

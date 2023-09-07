@@ -45,8 +45,8 @@ struct ubo {
 };
 
 struct Vertex {
-  float pos[4];
-  float color[4];
+  float pos[3];
+  float color[3];
   float normal[3];
 };
 

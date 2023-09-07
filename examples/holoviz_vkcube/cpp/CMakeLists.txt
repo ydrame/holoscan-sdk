@@ -16,6 +16,7 @@
 # Create example
 add_executable(holoviz_vkcube
   holoviz_geometry.cpp
+  util/esTransform.c
 )
 
 target_link_libraries(holoviz_vkcube

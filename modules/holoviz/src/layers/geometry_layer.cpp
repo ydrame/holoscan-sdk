@@ -298,8 +298,14 @@ void GeometryLayer::primitive(PrimitiveTopology topology, uint32_t primitive_cou
       vkTopology = vk::PrimitiveTopology::eTriangleList;
       break;
     case PrimitiveTopology::VBO:
-      required_data_size = primitive_count * 3 * 9;
-      vertex_counts.push_back(required_data_size / 9);
+      // required_data_size = primitive_count * 3 * 9; // 6
+      required_data_size = primitive_count * 4 * 3 * 3;  // 6
+      auto total_vertex_count = required_data_size / 3 / 3;
+      // vertex_counts.push_back(required_data_size / 9);
+      for (int i = 0; i < primitive_count; i++) {
+        vertex_counts.push_back(total_vertex_count / primitive_count);
+      }
+
       vkTopology = vk::PrimitiveTopology::eTriangleStrip;
       break;
   }
@@ -467,32 +473,41 @@ void GeometryLayer::end(Vulkan* vulkan) {
             vertices.insert(vertices.end(), primitive.data_.begin(), primitive.data_.end());
             break;
           case PrimitiveTopology::VBO:
-            for (uint32_t index = 0; index < primitive.primitive_count_ * 3; ++index) {
+            for (uint32_t index = 0; index < primitive.primitive_count_ * 4; ++index) {
               vertices.insert(vertices.end(),
                               {
                                   // Vertices
                                   primitive.data_[index * 3 + 0],
                                   primitive.data_[index * 3 + 1],
                                   primitive.data_[index * 3 + 2],
-                                  // primitive.data_[index * 3 + 3],
+
                                   //  Colors
                                   primitive.data_[24 * 3 + index * 3 + 0],
                                   primitive.data_[24 * 3 + index * 3 + 1],
                                   primitive.data_[24 * 3 + index * 3 + 2],
-                                  //  primitive.data_[24 + index * 3 + 3],
+
                                   // Normals
                                   primitive.data_[48 * 3 + index * 3 + 0],
                                   primitive.data_[48 * 3 + index * 3 + 1],
                                   primitive.data_[48 * 3 + index * 3 + 2],
-                                  //  primitive.data_[48 + index * 3 + 2]
+
+                                  /*
+                                  std::abs(primitive.data_[48 * 3 + index * 3 + 0]),
+                                  std::abs(primitive.data_[48 * 3 + index * 3 + 1]),
+                                  std::abs(primitive.data_[48 * 3 + index * 3 + 2]),
+                                  */
+
                               });
             }
             break;
         }
       }
 
+      size_t sizeofvertices = vertices.size();
       impl_->vertex_buffer_ = vulkan->create_buffer(
-          vertices.size() * sizeof(float), vertices.data(), vk::BufferUsageFlagBits::eVertexBuffer);
+          vertices.size() * sizeof(float),
+          vertices.data(),
+          vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eUniformBuffer);
     }
   }
 

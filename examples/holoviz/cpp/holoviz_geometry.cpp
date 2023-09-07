@@ -34,6 +34,7 @@ namespace holoscan::ops {
  *  This operator has:
  *       outputs: "output_tensor"
  *       output_specs: "output_specs"
+ *       transform_specs : "transform_specs"
  */
 class GeometrySourceOp : public Operator {
  public:

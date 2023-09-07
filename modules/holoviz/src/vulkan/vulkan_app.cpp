@@ -1249,7 +1249,7 @@ void Vulkan::Impl::begin_render_pass() {
 
   // Clearing values
   std::array<vk::ClearValue, 2> clear_values;
-  clear_values[0].color = vk::ClearColorValue(std::array<float, 4>({0.f, 0.f, 0.f, 0.f}));
+  clear_values[0].color = vk::ClearColorValue(std::array<float, 4>({0.2f, 0.2f, 0.2f, 1.0f}));
   clear_values[1].depthStencil = vk::ClearDepthStencilValue(1.0f, 0);
 
   // Begin rendering
@@ -1601,7 +1601,9 @@ vk::UniquePipeline Vulkan::Impl::create_pipeline(
   state.addAttributeDescriptions(attribute_descriptions);
 
   // disable culling
-  state.rasterizationState.cullMode = vk::CullModeFlagBits::eNone;
+  state.rasterizationState.cullMode = vk::CullModeFlagBits::eBack;
+  state.rasterizationState.frontFace = vk::FrontFace::eClockwise;
+  state.rasterizationState.polygonMode = vk::PolygonMode::eFill;
 
   // enable smooth line rasterization if available
   vk::PipelineRasterizationLineStateCreateInfoEXT line_state;
