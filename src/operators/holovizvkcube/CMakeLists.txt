@@ -13,18 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_subdirectory(aja_source)
-add_subdirectory(async_ping_rx)
-add_subdirectory(async_ping_tx)
-add_subdirectory(bayer_demosaic)
-add_subdirectory(format_converter)
-add_subdirectory(holoviz)
-add_subdirectory(holovizvkcube)
-add_subdirectory(inference)
-add_subdirectory(inference_processor)
-add_subdirectory(ping_rx)
-add_subdirectory(ping_tx)
-add_subdirectory(segmentation_postprocessor)
-add_subdirectory(v4l2_video_capture)
-add_subdirectory(video_stream_recorder)
-add_subdirectory(video_stream_replayer)
+add_holoscan_operator(holovizvkcube holovizvkcube.cpp)
+
+target_link_libraries(op_holovizvkcube
+    PUBLIC
+        holoscan::core
+        holoscan::viz
+    PRIVATE
+        CUDA::cudart
+        GXF::multimedia
+        holoscan::ops::holoviz
+)
