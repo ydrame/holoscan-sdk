@@ -23,7 +23,6 @@ FetchContent_Declare(
   GIT_TAG 6df347cc91535c1a080b467e45de10fe6789c542
   GIT_PROGRESS TRUE
   SOURCE_DIR nvpro_core
-  PATCH_COMMAND git apply "${CMAKE_CURRENT_SOURCE_DIR}/nvpro_core.patch" || true
   )
 
 FetchContent_GetProperties(nvpro_core)
