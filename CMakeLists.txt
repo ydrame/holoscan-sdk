@@ -185,6 +185,7 @@ list(APPEND HOLOSCAN_INSTALL_TARGETS
     op_bayer_demosaic
     op_format_converter
     op_holoviz
+    op_holovizvkcube
     op_inference
     op_inference_processor
     op_ping_rx
