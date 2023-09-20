@@ -512,8 +512,8 @@ class Vulkan::Impl {
 
   void draw(vk::PrimitiveTopology topology, uint32_t count, uint32_t first,
             const std::vector<Buffer*>& vertex_buffers, float opacity,
-            const std::array<float, 4>& color, float point_size, float line_width,
-            const struct ubo& ubo, const nvmath::mat4f& view_matrix);
+            const std::array<float, 4>& color, const std::array<float, 4>& light, float point_size,
+            float line_width, const struct ubo& ubo, const nvmath::mat4f& view_matrix);
 
   void draw_text_indexed(vk::DescriptorSet desc_set, Buffer* vertex_buffer, Buffer* index_buffer,
                          vk::IndexType index_type, uint32_t index_count, uint32_t first_index,
@@ -2154,8 +2154,9 @@ void Vulkan::Impl::draw_texture(Texture* texture, Texture* depth_texture, Textur
 
 void Vulkan::Impl::draw(vk::PrimitiveTopology topology, uint32_t count, uint32_t first,
                         const std::vector<Buffer*>& vertex_buffers, float opacity,
-                        const std::array<float, 4>& color, float point_size, float line_width,
-                        const struct ubo& ubo, const nvmath::mat4f& view_matrix) {
+                        const std::array<float, 4>& color, const std::array<float, 4>& light,
+                        float point_size, float line_width, const struct ubo& ubo,
+                        const nvmath::mat4f& view_matrix) {
   const vk::CommandBuffer cmd_buf = command_buffers_[get_active_image_index()].get();
 
   switch (topology) {
@@ -2682,14 +2683,16 @@ void Vulkan::draw_texture(Texture* texture, Texture* depth_texture, Texture* lut
 
 void Vulkan::draw(vk::PrimitiveTopology topology, uint32_t count, uint32_t first,
                   const std::vector<Buffer*>& vertex_buffers, float opacity,
-                  const std::array<float, 4>& color, float point_size, float line_width,
-                  const struct ubo& ubo, const nvmath::mat4f& view_matrix) {
+                  const std::array<float, 4>& color, const std::array<float, 4>& light,
+                  float point_size, float line_width, const struct ubo& ubo,
+                  const nvmath::mat4f& view_matrix) {
   impl_->draw(topology,
               count,
               first,
               vertex_buffers,
               opacity,
               color,
+              light,
               point_size,
               line_width,
               ubo,

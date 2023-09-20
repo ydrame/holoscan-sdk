@@ -19,7 +19,9 @@
 
 #include <cuda_runtime.h>
 
+#include <sys/time.h>
 #include <algorithm>
+#include <array>
 #include <list>
 #include <memory>
 #include <string>
@@ -484,7 +486,7 @@ void HolovizOp::setup(OperatorSpec& spec) {
   spec.param(receivers_, "receivers", "Input Receivers", "List of input receivers.", {});
 
   spec.input<std::any>("input_specs").condition(ConditionType::kNone);
-  spec.input<std::any>("input_transform_specs").condition(ConditionType::kNone);
+  // spec.input<std::any>("input_transform_specs").condition(ConditionType::kNone);
 
   auto& render_buffer_input =
       spec.input<gxf::Entity>("render_buffer_input").condition(ConditionType::kNone);
@@ -860,6 +862,7 @@ void HolovizOp::start() {
     initial_input_spec_.insert(
         initial_input_spec_.begin(), tensors_.get().begin(), tensors_.get().end());
   }
+  gettimeofday(&start_tv, NULL);
 }
 
 void HolovizOp::stop() {
@@ -900,12 +903,12 @@ void HolovizOp::compute(InputContext& op_input, OutputContext& op_output,
   }
 
   // check the messages for input specs, they are added to the list
-  if (!op_input.empty("input_transform_specs")) {
+  /*if (!op_input.empty("input_transform_specs")) {
     auto msg_input_specs =
         op_input.receive<std::vector<holoscan::ops::HolovizOp::InputSpec>>("input_transform_specs")
             .value();
     input_spec_list.insert(input_spec_list.end(), msg_input_specs.begin(), msg_input_specs.end());
-  }
+  }*/
 
   // then get all tensors and video buffers of all messages, check if an input spec for the tensor
   // is already there, if not try to detect the input spec from the tensor or video buffer
@@ -1352,6 +1355,92 @@ void HolovizOp::compute(InputContext& op_input, OutputContext& op_output,
           if (primitive_count) {
             viz::Primitive(topology, primitive_count, coords.size(), coords.data());
           }
+          std::vector<std::array<float, 3>> colors = {{0.0f, 0.0f, 1.0f},  // blue
+                                                      {1.0f, 0.0f, 1.0f},  // magenta
+                                                      {0.0f, 1.0f, 1.0f},  // cyan
+                                                      {1.0f, 1.0f, 1.0f},  // white
+                                                                           // back
+                                                      {1.0f, 0.0f, 0.0f},  // red
+                                                      {0.0f, 0.0f, 0.0f},  // black
+                                                      {1.0f, 1.0f, 0.0f},  // yellow
+                                                      {0.0f, 1.0f, 0.0f},  // green
+                                                                           // right
+                                                      {1.0f, 0.0f, 1.0f},  // magenta
+                                                      {1.0f, 0.0f, 0.0f},  // red
+                                                      {1.0f, 1.0f, 1.0f},  // white
+                                                      {1.0f, 1.0f, 0.0f},  // yellow
+                                                                           // left
+                                                      {0.0f, 0.0f, 0.0f},  // black
+                                                      {0.0f, 0.0f, 1.0f},  // blue
+                                                      {0.0f, 1.0f, 0.0f},  // green
+                                                      {0.0f, 1.0f, 1.0f},  // cyan
+                                                                           // top
+                                                      {0.0f, 1.0f, 1.0f},  // cyan
+                                                      {1.0f, 1.0f, 1.0f},  // white
+                                                      {0.0f, 1.0f, 0.0f},  // green
+                                                      {1.0f, 1.0f, 0.0f},  // yellow
+                                                                           // bottom
+                                                      {0.0f, 0.0f, 0.0f},  // black
+                                                      {1.0f, 0.0f, 0.0f},  // red
+                                                      {0.0f, 0.0f, 1.0f},  // blue
+                                                      {1.0f, 0.0f, 1.0f}}  // magenta
+          ;
+
+          // viz::Colors((const float*)colors.data(), colors.size());
+
+          std::vector<std::array<float, 3>> normals = {
+              {+0.0f, +0.0f, +1.0f},  // forward
+              {+0.0f, +0.0f, +1.0f},  // forward
+              {+0.0f, +0.0f, +1.0f},  // forward
+              {+0.0f, +0.0f, +1.0f},  // forward
+                                      // back
+              {+0.0f, +0.0f, -1.0f},  // backbard
+              {+0.0f, +0.0f, -1.0f},  // backbard
+              {+0.0f, +0.0f, -1.0f},  // backbard
+              {+0.0f, +0.0f, -1.0f},  // backbard
+                                      // right
+              {+1.0f, +0.0f, +0.0f},  // right
+              {+1.0f, +0.0f, +0.0f},  // right
+              {+1.0f, +0.0f, +0.0f},  // right
+              {+1.0f, +0.0f, +0.0f},  // right
+                                      // left
+              {-1.0f, +0.0f, +0.0f},  // left
+              {-1.0f, +0.0f, +0.0f},  // left
+              {-1.0f, +0.0f, +0.0f},  // left
+              {-1.0f, +0.0f, +0.0f},  // left
+                                      // top
+              {+0.0f, +1.0f, +0.0f},  // up
+              {+0.0f, +1.0f, +0.0f},  // up
+              {+0.0f, +1.0f, +0.0f},  // up
+              {+0.0f, +1.0f, +0.0f},  // up
+                                      // bottom
+              {+0.0f, -1.0f, +0.0f},  // down
+              {+0.0f, -1.0f, +0.0f},  // down
+              {+0.0f, -1.0f, +0.0f},  // down
+              {+0.0f, -1.0f, +0.0f}   // down
+          };
+          // holoscan::viz::Normals((const float*)normals.data(), normals.size());
+
+          // holoscan::viz::Light(2.0, 2.0, 20.0, 0.0);
+
+          struct timeval tv;
+          uint64_t t;
+
+          gettimeofday(&tv, NULL);
+
+          t = ((tv.tv_sec * 1000 + tv.tv_usec / 1000) -
+               (start_tv.tv_sec * 1000 + start_tv.tv_usec / 1000)) /
+              5;
+          // std::cout << "time factor" << t << std::endl;
+          std::vector<std::array<float, 4>> rotations = {{45.0f + (0.25f * t), 1.0f, 0.0f, 0.0f},
+                                                         {45.0f - (0.5f * t), 0.0f, 1.0f, 0.0f},
+                                                         {10.0f + (0.15f * t), 0.0f, 0.0f, 1.0f}};
+          std::vector<std::array<float, 3>> translations = {{0.0f, 0.0f, -8.0f}};
+
+          holoscan::viz::Translations((const float*)translations.data()->data(),
+                                      translations.size());
+          holoscan::viz::Rotations((const float*)rotations.data()->data(), rotations.size());
+          holoscan::viz::Frustum(-2.8f, +2.8f, -2.8f, +2.8f, 6.0f, 10.0f);
         }
 
         viz::EndLayer();

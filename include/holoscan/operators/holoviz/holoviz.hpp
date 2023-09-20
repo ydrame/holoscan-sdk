@@ -340,10 +340,11 @@ class HolovizOp : public Operator {
         0;  ///< layer priority, determines the render order, layers with higher priority values are
             ///< rendered on top of layers with lower priority values
     std::vector<float> color_{1.f, 1.f, 1.f, 1.f};  ///< color of rendered geometry
+    std::vector<float> light_{1.f, 1.f, 1.f, 1.f};  ///< color of rendered geometry
     float line_width_ = 1.f;                        ///< line width for geometry made of lines
     float point_size_ = 1.f;                        ///< point size for geometry made of points
     std::vector<std::string> transform_names = {std::string("identity")};
-    std::vector<std::array<float, 6>> transform_values;
+    std::vector<std::vector<float>> transform_values;
     std::vector<std::string> text_;  ///< array of text strings, used when type_ is TEXT.
     DepthMapRenderMode depth_map_render_mode_ =
         DepthMapRenderMode::POINTS;  ///< depth map render mode, used if type_ is
@@ -422,6 +423,7 @@ class HolovizOp : public Operator {
   bool render_buffer_output_enabled_;
   bool camera_pose_output_enabled_;
   bool is_first_tick_ = true;
+  struct timeval start_tv;
 };
 }  // namespace holoscan::ops
 

@@ -45,9 +45,17 @@
 
             "holoscan::viz::BeginGeometryLayer()";
             "holoscan::viz::Color(float, float, float, float)";
+            "holoscan::viz::Colors(float const*, int)";
+            "holoscan::viz::Normals(float const*, int)";
+            "holoscan::viz::Light(float, float, float, float)";
+            "holoscan::viz::Translations(float const*, int)";
+            "holoscan::viz::Rotations(float const*, int)";
+            "holoscan::viz::Frustum(float, float, float, float, float, float)";
+
             "holoscan::viz::LineWidth(float)";
             "holoscan::viz::PointSize(float)";
             "holoscan::viz::Primitive(holoscan::viz::PrimitiveTopology, unsigned int, unsigned long, float const*)";
+
             "holoscan::viz::Text(float, float, float, char const*)";
             "holoscan::viz::DepthMap(holoscan::viz::DepthMapRenderMode, unsigned int, unsigned int, holoscan::viz::ImageFormat, unsigned long long, holoscan::viz::ImageFormat, unsigned long long)";
 

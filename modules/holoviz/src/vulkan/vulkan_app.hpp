@@ -261,8 +261,9 @@ class Vulkan {
    */
   void draw(vk::PrimitiveTopology topology, uint32_t count, uint32_t first,
             const std::vector<Buffer*>& vertex_buffers, float opacity,
-            const std::array<float, 4>& color, float point_size, float line_width,
-            const struct ubo& ubo, const nvmath::mat4f& view_matrix = nvmath::mat4f(1));
+            const std::array<float, 4>& color, const std::array<float, 4>& light, float point_size,
+            float line_width, const struct ubo& ubo,
+            const nvmath::mat4f& view_matrix = nvmath::mat4f(1));
 
   /**
    * Draw indexed triangle list geometry. Used to draw ImGui draw list for text drawing.

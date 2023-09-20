@@ -41,14 +41,41 @@ constexpr uint32_t CIRCLE_SEGMENTS = 32;
 
 class Attributes {
  public:
-  Attributes() : color_({1.f, 1.f, 1.f, 1.f}), line_width_(1.f), point_size_(1.f) {}
+  Attributes()
+      : color_({1.f, 1.f, 1.f, 1.f}),
+        line_width_(1.f),
+        point_size_(1.f),
+        light_({1.f, 1.f, 1.f, 1.f}),
+        colors_({}),
+        normals_({}),
+        rotations_({}),
+        translations_({}),
+        frustum_({1.f, 1.f, 1.f, 1.f, 1.f, 1.f}) {}
+
+  ~Attributes() {
+    colors_.clear();
+    normals_.clear();
+    rotations_.clear();
+    translations_.clear();
+    // some instructions
+  }
 
   bool operator==(const Attributes& rhs) const {
     return ((color_ == rhs.color_) && (line_width_ == rhs.line_width_) &&
-            (point_size_ == rhs.point_size_));
+            (point_size_ == rhs.point_size_) && (light_ == rhs.light_) &&
+            (colors_ == rhs.colors_) && (normals_ == rhs.normals_) &&
+            (rotations_ == rhs.rotations_) && (translations_ == rhs.translations_) &&
+            (frustum_ == rhs.frustum_));
   }
 
   std::array<float, 4> color_;
+  std::array<float, 4> light_;
+  std::vector<std::array<float, 3>> colors_;
+  std::vector<std::array<float, 3>> normals_;
+  std::vector<std::array<float, 4>> rotations_;
+  std::vector<std::array<float, 3>> translations_;
+  std::array<float, 6> frustum_;
+
   float line_width_;
   float point_size_;
 };
@@ -222,6 +249,73 @@ void GeometryLayer::color(float r, float g, float b, float a) {
   impl_->attributes_.color_[2] = b;
   impl_->attributes_.color_[3] = a;
 }
+
+void GeometryLayer::colors(const float* colors_, int size) {
+  impl_->attributes_.colors_.resize(size);
+  memcpy(impl_->attributes_.colors_.data()->data(), colors_, size * 3 * sizeof(float));
+}
+void GeometryLayer::normals(const float* normals_, int size) {
+  impl_->attributes_.normals_.resize(size);
+  memcpy(impl_->attributes_.normals_.data()->data(), normals_, size * 3 * sizeof(float));
+}
+
+void GeometryLayer::light(float r, float g, float b, float a) {
+  impl_->attributes_.light_[0] = r;
+  impl_->attributes_.light_[1] = g;
+  impl_->attributes_.light_[2] = b;
+  impl_->attributes_.light_[3] = a;
+}
+
+void GeometryLayer::translations(const float* translations_, int size) {
+  impl_->attributes_.translations_.resize(size);
+  memcpy(impl_->attributes_.translations_.data()->data(), translations_, size * 3 * sizeof(float));
+}
+void GeometryLayer::rotations(const float* rotations_, int size) {
+  impl_->attributes_.rotations_.resize(size);
+  memcpy(impl_->attributes_.rotations_.data()->data(), rotations_, size * 4 * sizeof(float));
+}
+
+/*void GeometryLayer::color(float r, float g, float b, float a) {
+  impl_->attributes_.color_[0] = r;
+  impl_->attributes_.color_[1] = g;
+  impl_->attributes_.color_[2] = b;
+  impl_->attributes_.color_[3] = a;
+}
+
+void GeometryLayer::colors(std::vector<std::array<float, 3>>& colors) {
+  impl_->attributes_.colors_.insert(
+      impl_->attributes_.colors_.begin(), colors.begin(), colors.end());
+}
+void GeometryLayer::normals(std::vector<std::array<float, 3>>& normals) {
+  impl_->attributes_.normals_.insert(
+      impl_->attributes_.normals_.begin(), normals.begin(), normals.end());
+}
+
+void GeometryLayer::light(float r, float g, float b, float a) {
+  impl_->attributes_.light_[0] = r;
+  impl_->attributes_.light_[1] = g;
+  impl_->attributes_.light_[2] = b;
+  impl_->attributes_.light_[3] = a;
+}
+
+void GeometryLayer::translations(std::vector<std::array<float, 3>>& translations) {
+  impl_->attributes_.translations_.insert(
+      impl_->attributes_.translations_.begin(), translations.begin(), translations.end());
+}
+void GeometryLayer::rotations(std::vector<std::array<float, 4>>& rotations) {
+  impl_->attributes_.rotations_.insert(
+      impl_->attributes_.rotations_.begin(), rotations.begin(), rotations.end());
+}*/
+void GeometryLayer::frustum(float left, float right, float bottom, float top, float nearZ,
+                            float farZ) {
+  impl_->attributes_.frustum_[0] = left;
+  impl_->attributes_.frustum_[1] = right;
+  impl_->attributes_.frustum_[2] = bottom;
+  impl_->attributes_.frustum_[3] = top;
+  impl_->attributes_.frustum_[4] = nearZ;
+  impl_->attributes_.frustum_[5] = farZ;
+}
+
 void GeometryLayer::line_width(float width) {
   impl_->attributes_.line_width_ = width;
 }
@@ -739,7 +833,7 @@ void GeometryLayer::end(Vulkan* vulkan) {
 }
 
 void GeometryLayer::render(Vulkan* vulkan) {
-  struct ubo ubo;
+  /*struct ubo ubo;
   struct timeval tv, start_tv;
   uint64_t t;
 
@@ -768,8 +862,35 @@ void GeometryLayer::render(Vulkan* vulkan) {
   esMatrixMultiply(&ubo.modelviewprojection, &ubo.modelview, &projection);
 
   /* The mat3 normalMatrix is laid out as 3 vec4s. */
-  memcpy(ubo.normal, &ubo.modelview, sizeof ubo.normal);
+  //  memcpy(ubo.normal, &ubo.modelview, sizeof ubo.normal);
 
+  struct ubo ubo;
+  esMatrixLoadIdentity(&ubo.modelview);
+  for (auto translation : impl_->attributes_.translations_)
+    esTranslate(&ubo.modelview, translation[0], translation[1], translation[2]);
+  for (auto rotation : impl_->attributes_.rotations_)
+    esRotate(&ubo.modelview, rotation[0], rotation[1], rotation[2], rotation[3]);
+
+  uint32_t width, height;
+  vulkan->get_window()->get_framebuffer_size(&width, &height);
+
+  float aspect = (float)height / (float)width;
+  ESMatrix projection;
+  esMatrixLoadIdentity(&projection);
+  auto frustum = impl_->attributes_.frustum_;
+  esFrustum(&projection,
+            frustum[0],
+            frustum[1],
+            frustum[2] * aspect,
+            frustum[3] * aspect,
+            frustum[4],
+            frustum[5]);
+
+  esMatrixLoadIdentity(&ubo.modelviewprojection);
+  esMatrixMultiply(&ubo.modelviewprojection, &ubo.modelview, &projection);
+
+  /* The mat3 normalMatrix is laid out as 3 vec4s. */
+  memcpy(ubo.normal, &ubo.modelview, sizeof ubo.normal);
   // setup the 2D view matrix in a way that geometry coordinates are in the range [0...1]
   nvmath::mat4f view_matrix_2d_base;
   view_matrix_2d_base.identity();
@@ -794,6 +915,34 @@ void GeometryLayer::render(Vulkan* vulkan) {
     // draw geometry primitives
     for (auto&& primitive : impl_->primitives_) {
       uint32_t vertex_offset = primitive.vertex_offset_;
+      /*
+            struct ubo ubo;
+            esMatrixLoadIdentity(&ubo.modelview);
+            for (auto translation : primitive.attributes_.translations_)
+              esTranslate(&ubo.modelview, translation[0], translation[1], translation[2]);
+            for (auto rotation : primitive.attributes_.rotations_)
+              esRotate(&ubo.modelview, rotation[0], rotation[1], rotation[2], rotation[3]);
+
+            uint32_t width, height;
+            vulkan->get_window()->get_framebuffer_size(&width, &height);
+
+            float aspect = (float)height / (float)width;
+            ESMatrix projection;
+            esMatrixLoadIdentity(&projection);
+            auto frustum = primitive.attributes_.frustum_;
+            esFrustum(&projection,
+                      frustum[0],
+                      frustum[1],
+                      frustum[2] * aspect,
+                      frustum[3] * aspect,
+                      frustum[4],
+                      frustum[5]);
+
+            esMatrixLoadIdentity(&ubo.modelviewprojection);
+            esMatrixMultiply(&ubo.modelviewprojection, &ubo.modelview, &projection);
+      */
+      /* The mat3 normalMatrix is laid out as 3 vec4s. */
+      // memcpy(ubo.normal, &ubo.modelview, sizeof ubo.normal);
       for (auto&& vertex_count : primitive.vertex_counts_) {
         vulkan->draw(primitive.vk_topology_,
                      vertex_count,
@@ -801,6 +950,7 @@ void GeometryLayer::render(Vulkan* vulkan) {
                      {impl_->vertex_buffer_},
                      get_opacity(),
                      primitive.attributes_.color_,
+                     primitive.attributes_.light_,
                      primitive.attributes_.point_size_,
                      primitive.attributes_.line_width_,
                      ubo,
@@ -859,6 +1009,7 @@ void GeometryLayer::render(Vulkan* vulkan) {
                        vertex_buffers,
                        get_opacity(),
                        depth_map.attributes_.color_,
+                       depth_map.attributes_.light_,
                        depth_map.attributes_.point_size_,
                        depth_map.attributes_.line_width_,
                        ubo,

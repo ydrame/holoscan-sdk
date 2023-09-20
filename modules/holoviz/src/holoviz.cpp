@@ -106,6 +106,28 @@ void Color(float r, float g, float b, float a) {
   Context::get().get_active_geometry_layer()->color(r, g, b, a);
 }
 
+void Colors(const float* colors, int size) {
+  Context::get().get_active_geometry_layer()->colors(colors, size);
+}
+void Normals(const float* normals, int size) {
+  Context::get().get_active_geometry_layer()->normals(normals, size);
+}
+
+void Light(float r, float g, float b, float a) {
+  Context::get().get_active_geometry_layer()->light(r, g, b, a);
+}
+
+void Translations(const float* translations, int size) {
+  Context::get().get_active_geometry_layer()->translations(translations, size);
+}
+void Rotations(const float* rotations, int size) {
+  Context::get().get_active_geometry_layer()->rotations(rotations, size);
+}
+
+void Frustum(float left, float right, float bottom, float top, float nearZ, float farZ) {
+  Context::get().get_active_geometry_layer()->frustum(left, right, bottom, top, nearZ, farZ);
+}
+
 void LineWidth(float width) {
   Context::get().get_active_geometry_layer()->line_width(width);
 }

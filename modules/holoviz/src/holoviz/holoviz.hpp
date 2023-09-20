@@ -70,7 +70,9 @@ viz::Shutdown();
 
 #include <cuda.h>
 
+#include <array>
 #include <cstdint>
+#include <vector>
 
 #include "holoviz/depth_map_render_mode.hpp"
 #include "holoviz/image_format.hpp"
@@ -303,6 +305,18 @@ void BeginGeometryLayer();
  * @param r,g,b,a RGBA color. Default (1.0, 1.0, 1.0, 1.0).
  */
 void Color(float r, float g, float b, float a);
+
+/**
+ * Set the color for following geometry.
+ *
+ * @param r,g,b,a RGBA color. Default (1.0, 1.0, 1.0, 1.0).
+ */
+void Colors(const float* colors, int size);
+void Normals(const float* normals, int size);
+void Light(float r, float g, float b, float a);
+void Translations(const float* translations, int size);
+void Rotations(const float* rotations, int size);
+void Frustum(float left, float right, float bottom, float top, float nearZ, float farZ);
 
 /**
  * Set the line width for geometry made of lines.

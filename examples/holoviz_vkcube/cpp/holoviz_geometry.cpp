@@ -58,7 +58,7 @@ class GeometrySourceOp : public Operator {
   void setup(OperatorSpec& spec) override {
     spec.output<gxf::Entity>("outputs");
     // spec.output<std::vector<HolovizOp::InputSpec>>("output_specs");
-    spec.output<std::vector<HolovizOp::InputSpec>>("transform_specs");
+    // spec.output<std::vector<HolovizOp::InputSpec>>("transform_specs");
 
     gettimeofday(&start_tv, NULL);
   }
@@ -182,12 +182,13 @@ class GeometrySourceOp : public Operator {
                         {+0.0f, -1.0f, +0.0f}   // down
                     }},
                     context);
-    add_data<2, 2>(entity, "transforms", {{{0.f, 0.f}}}, context);
+    /*add_data<2, 2>(entity, "transforms", {{{0.f, 0.f}}}, context);
     add_data<1, 1>(entity, "update", {{{1.0f}}}, context);
+    */
 
     op_output.emit(entity, "outputs");
 
-    HolovizOp::InputSpec spec;
+    /*HolovizOp::InputSpec spec;
     spec.tensor_name_ = "transforms";
     spec.type_ = HolovizOp::InputType::TRANSFORM;
 
@@ -219,12 +220,7 @@ class GeometrySourceOp : public Operator {
     specs.push_back(spec);
 
     // emit the transformspecs
-    op_output.emit(specs, "transform_specs");
-
-    /*} else {
-      add_data<1, 1>(entity, "update", {{{1.0f}}}, context);
-      op_output.emit(entity, "outputs");
-    }*/
+    op_output.emit(specs, "transform_specs");*/
 
     count_++;
   }
@@ -372,9 +368,9 @@ class HolovizGeometryApp : public holoscan::Application {
 
     // Define the workflow: source -> holoviz
     add_flow(source, visualizer, {{"outputs", "receivers"}});
-    add_flow(source, visualizer, {{"transform_specs", "input_transform_specs"}});
+    // add_flow(source, visualizer, {{"transform_specs", "input_transform_specs"}});
     // add_flow(source, visualizer, {{"output_specs", "input_specs"}});
-    //  add_flow(replayer, visualizer, {{"output", "receivers"}});
+    // add_flow(replayer, visualizer, {{"output", "receivers"}});
   }
 
  private:

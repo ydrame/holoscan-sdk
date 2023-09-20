@@ -53,6 +53,13 @@ class GeometryLayer : public Layer {
    */
   void color(float r, float g, float b, float a);
 
+  void colors(const float* colors_, int size);
+  void normals(const float* normals_, int size);
+  void light(float r, float g, float b, float a);
+  void translations(const float* rotations_, int size);
+  void rotations(const float* translations_, int size);
+  void frustum(float left, float right, float bottom, float top, float nearZ, float farZ);
+
   /**
    * Set the line width for geometry made of lines.
    *
