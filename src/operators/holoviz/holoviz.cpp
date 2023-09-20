@@ -1325,6 +1325,7 @@ void HolovizOp::compute(InputContext& op_input, OutputContext& op_output,
               coordinate_count = primitive_count * (3 * 4);
               values_per_coordinate = 3;
               default_coord = {0.f, 0.f, 0.f};
+
               break;
 
             case InputType::UPDATE:
@@ -1352,9 +1353,6 @@ void HolovizOp::compute(InputContext& op_input, OutputContext& op_output,
             src_coord += buffer_info.stride[1] / sizeof(float);
           }
 
-          if (primitive_count) {
-            viz::Primitive(topology, primitive_count, coords.size(), coords.data());
-          }
           std::vector<std::array<float, 3>> colors = {{0.0f, 0.0f, 1.0f},  // blue
                                                       {1.0f, 0.0f, 1.0f},  // magenta
                                                       {0.0f, 1.0f, 1.0f},  // cyan
@@ -1386,7 +1384,7 @@ void HolovizOp::compute(InputContext& op_input, OutputContext& op_output,
                                                       {1.0f, 0.0f, 1.0f}}  // magenta
           ;
 
-          // viz::Colors((const float*)colors.data(), colors.size());
+          viz::Colors((const float*)colors.data(), colors.size());
 
           std::vector<std::array<float, 3>> normals = {
               {+0.0f, +0.0f, +1.0f},  // forward
@@ -1419,9 +1417,13 @@ void HolovizOp::compute(InputContext& op_input, OutputContext& op_output,
               {+0.0f, -1.0f, +0.0f},  // down
               {+0.0f, -1.0f, +0.0f}   // down
           };
-          // holoscan::viz::Normals((const float*)normals.data(), normals.size());
+          holoscan::viz::Normals((const float*)normals.data(), normals.size());
 
-          // holoscan::viz::Light(2.0, 2.0, 20.0, 0.0);
+          if (primitive_count) {
+            viz::Primitive(topology, primitive_count, coords.size(), coords.data());
+          }
+
+          holoscan::viz::Light(2.0, 2.0, 20.0, 0.0);
 
           struct timeval tv;
           uint64_t t;

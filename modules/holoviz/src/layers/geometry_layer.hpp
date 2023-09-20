@@ -30,6 +30,7 @@
 #include "../holoviz/primitive_topology.hpp"
 
 namespace holoscan::viz {
+class Attributes;
 
 /**
  * Layer specialication for geometry rendering.
@@ -116,7 +117,10 @@ class GeometryLayer : public Layer {
   bool can_be_reused(Layer& other) const override;
   void end(Vulkan* vulkan) override;
   void render(Vulkan* vulkan) override;
+
   ///@}
+  Attributes& get_attributes() const;
+  void set_attributes(const Layer* layer) override;
 
  private:
   struct Impl;

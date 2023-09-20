@@ -109,6 +109,7 @@ class Layer {
    * @param views layer views to add
    */
   void set_views(const std::vector<View> &views);
+  virtual void set_attributes(const Layer* layer);
 
   /**
    * Add a layer view.

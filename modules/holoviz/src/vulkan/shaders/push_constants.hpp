@@ -36,6 +36,7 @@ struct VKcubePushConstantVertex {
   ESMatrix modelview;
   ESMatrix modelviewprojection;
   float normal[12];
+  vec4 light;
 };
 
 struct PushConstantVertex {

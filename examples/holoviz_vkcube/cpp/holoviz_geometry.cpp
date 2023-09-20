@@ -119,67 +119,68 @@ class GeometrySourceOp : public Operator {
                         {+1.0f, -1.0f, -1.0f},  // point red
                         {-1.0f, -1.0f, +1.0f},  // point blue
                         {+1.0f, -1.0f, +1.0f},  // point magenta
+                        /*
+                          {0.0f, 0.0f, 1.0f},  // blue
+                          {1.0f, 0.0f, 1.0f},  // magenta
+                          {0.0f, 1.0f, 1.0f},  // cyan
+                          {1.0f, 1.0f, 1.0f},  // white
+                                               // back
+                          {1.0f, 0.0f, 0.0f},  // red
+                          {0.0f, 0.0f, 0.0f},  // black
+                          {1.0f, 1.0f, 0.0f},  // yellow
+                          {0.0f, 1.0f, 0.0f},  // green
+                                               // right
+                          {1.0f, 0.0f, 1.0f},  // magenta
+                          {1.0f, 0.0f, 0.0f},  // red
+                          {1.0f, 1.0f, 1.0f},  // white
+                          {1.0f, 1.0f, 0.0f},  // yellow
+                                               // left
+                          {0.0f, 0.0f, 0.0f},  // black
+                          {0.0f, 0.0f, 1.0f},  // blue
+                          {0.0f, 1.0f, 0.0f},  // green
+                          {0.0f, 1.0f, 1.0f},  // cyan
+                                               // top
+                          {0.0f, 1.0f, 1.0f},  // cyan
+                          {1.0f, 1.0f, 1.0f},  // white
+                          {0.0f, 1.0f, 0.0f},  // green
+                          {1.0f, 1.0f, 0.0f},  // yellow
+                                               // bottom
+                          {0.0f, 0.0f, 0.0f},  // black
+                          {1.0f, 0.0f, 0.0f},  // red
+                          {0.0f, 0.0f, 1.0f},  // blue
+                          {1.0f, 0.0f, 1.0f},  // magenta
 
-                        {0.0f, 0.0f, 1.0f},  // blue
-                        {1.0f, 0.0f, 1.0f},  // magenta
-                        {0.0f, 1.0f, 1.0f},  // cyan
-                        {1.0f, 1.0f, 1.0f},  // white
-                                             // back
-                        {1.0f, 0.0f, 0.0f},  // red
-                        {0.0f, 0.0f, 0.0f},  // black
-                        {1.0f, 1.0f, 0.0f},  // yellow
-                        {0.0f, 1.0f, 0.0f},  // green
-                                             // right
-                        {1.0f, 0.0f, 1.0f},  // magenta
-                        {1.0f, 0.0f, 0.0f},  // red
-                        {1.0f, 1.0f, 1.0f},  // white
-                        {1.0f, 1.0f, 0.0f},  // yellow
-                                             // left
-                        {0.0f, 0.0f, 0.0f},  // black
-                        {0.0f, 0.0f, 1.0f},  // blue
-                        {0.0f, 1.0f, 0.0f},  // green
-                        {0.0f, 1.0f, 1.0f},  // cyan
-                                             // top
-                        {0.0f, 1.0f, 1.0f},  // cyan
-                        {1.0f, 1.0f, 1.0f},  // white
-                        {0.0f, 1.0f, 0.0f},  // green
-                        {1.0f, 1.0f, 0.0f},  // yellow
-                                             // bottom
-                        {0.0f, 0.0f, 0.0f},  // black
-                        {1.0f, 0.0f, 0.0f},  // red
-                        {0.0f, 0.0f, 1.0f},  // blue
-                        {1.0f, 0.0f, 1.0f},  // magenta
-
-                        // front
-                        {+0.0f, +0.0f, +1.0f},  // forward
-                        {+0.0f, +0.0f, +1.0f},  // forward
-                        {+0.0f, +0.0f, +1.0f},  // forward
-                        {+0.0f, +0.0f, +1.0f},  // forward
-                                                // back
-                        {+0.0f, +0.0f, -1.0f},  // backbard
-                        {+0.0f, +0.0f, -1.0f},  // backbard
-                        {+0.0f, +0.0f, -1.0f},  // backbard
-                        {+0.0f, +0.0f, -1.0f},  // backbard
-                                                // right
-                        {+1.0f, +0.0f, +0.0f},  // right
-                        {+1.0f, +0.0f, +0.0f},  // right
-                        {+1.0f, +0.0f, +0.0f},  // right
-                        {+1.0f, +0.0f, +0.0f},  // right
-                                                // left
-                        {-1.0f, +0.0f, +0.0f},  // left
-                        {-1.0f, +0.0f, +0.0f},  // left
-                        {-1.0f, +0.0f, +0.0f},  // left
-                        {-1.0f, +0.0f, +0.0f},  // left
-                                                // top
-                        {+0.0f, +1.0f, +0.0f},  // up
-                        {+0.0f, +1.0f, +0.0f},  // up
-                        {+0.0f, +1.0f, +0.0f},  // up
-                        {+0.0f, +1.0f, +0.0f},  // up
-                                                // bottom
-                        {+0.0f, -1.0f, +0.0f},  // down
-                        {+0.0f, -1.0f, +0.0f},  // down
-                        {+0.0f, -1.0f, +0.0f},  // down
-                        {+0.0f, -1.0f, +0.0f}   // down
+                          // front
+                          {+0.0f, +0.0f, +1.0f},  // forward
+                          {+0.0f, +0.0f, +1.0f},  // forward
+                          {+0.0f, +0.0f, +1.0f},  // forward
+                          {+0.0f, +0.0f, +1.0f},  // forward
+                                                  // back
+                          {+0.0f, +0.0f, -1.0f},  // backbard
+                          {+0.0f, +0.0f, -1.0f},  // backbard
+                          {+0.0f, +0.0f, -1.0f},  // backbard
+                          {+0.0f, +0.0f, -1.0f},  // backbard
+                                                  // right
+                          {+1.0f, +0.0f, +0.0f},  // right
+                          {+1.0f, +0.0f, +0.0f},  // right
+                          {+1.0f, +0.0f, +0.0f},  // right
+                          {+1.0f, +0.0f, +0.0f},  // right
+                                                  // left
+                          {-1.0f, +0.0f, +0.0f},  // left
+                          {-1.0f, +0.0f, +0.0f},  // left
+                          {-1.0f, +0.0f, +0.0f},  // left
+                          {-1.0f, +0.0f, +0.0f},  // left
+                                                  // top
+                          {+0.0f, +1.0f, +0.0f},  // up
+                          {+0.0f, +1.0f, +0.0f},  // up
+                          {+0.0f, +1.0f, +0.0f},  // up
+                          {+0.0f, +1.0f, +0.0f},  // up
+                                                  // bottom
+                          {+0.0f, -1.0f, +0.0f},  // down
+                          {+0.0f, -1.0f, +0.0f},  // down
+                          {+0.0f, -1.0f, +0.0f},  // down
+                          {+0.0f, -1.0f, +0.0f}   // down
+                          */
                     }},
                     context);
     /*add_data<2, 2>(entity, "transforms", {{{0.f, 0.f}}}, context);

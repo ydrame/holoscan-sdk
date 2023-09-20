@@ -2226,6 +2226,7 @@ void Vulkan::Impl::draw(vk::PrimitiveTopology topology, uint32_t count, uint32_t
     push_constant_vertex.modelview = ubo.modelview;
     push_constant_vertex.modelviewprojection = ubo.modelviewprojection;
     memcpy(push_constant_vertex.normal, &ubo.normal, sizeof(ubo.normal));
+    push_constant_vertex.light = light;
 
     cmd_buf.pushConstants(vkcube_pipeline_layout_.get(),
                           vk::ShaderStageFlagBits::eVertex,

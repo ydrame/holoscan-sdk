@@ -569,29 +569,20 @@ void GeometryLayer::end(Vulkan* vulkan) {
           case PrimitiveTopology::VBO:
             for (uint32_t index = 0; index < primitive.primitive_count_ * 4; ++index) {
               vertices.insert(vertices.end(),
-                              {
-                                  // Vertices
-                                  primitive.data_[index * 3 + 0],
-                                  primitive.data_[index * 3 + 1],
-                                  primitive.data_[index * 3 + 2],
+                              {// Vertices
+                               primitive.data_[index * 3 + 0],
+                               primitive.data_[index * 3 + 1],
+                               primitive.data_[index * 3 + 2],
 
-                                  //  Colors
-                                  primitive.data_[24 * 3 + index * 3 + 0],
-                                  primitive.data_[24 * 3 + index * 3 + 1],
-                                  primitive.data_[24 * 3 + index * 3 + 2],
+                               //  Colors
+                               impl_->attributes_.colors_[index][0],
+                               impl_->attributes_.colors_[index][1],
+                               impl_->attributes_.colors_[index][2],
 
-                                  // Normals
-                                  primitive.data_[48 * 3 + index * 3 + 0],
-                                  primitive.data_[48 * 3 + index * 3 + 1],
-                                  primitive.data_[48 * 3 + index * 3 + 2],
-
-                                  /*
-                                  std::abs(primitive.data_[48 * 3 + index * 3 + 0]),
-                                  std::abs(primitive.data_[48 * 3 + index * 3 + 1]),
-                                  std::abs(primitive.data_[48 * 3 + index * 3 + 2]),
-                                  */
-
-                              });
+                               // Normals
+                               impl_->attributes_.normals_[index][0],
+                               impl_->attributes_.normals_[index][1],
+                               impl_->attributes_.normals_[index][2]});
             }
             break;
         }
@@ -832,6 +823,14 @@ void GeometryLayer::end(Vulkan* vulkan) {
   }
 }
 
+Attributes& GeometryLayer::get_attributes() const {
+  return impl_->attributes_;
+}
+void GeometryLayer::set_attributes(const Layer* layer) {
+  auto lay = reinterpret_cast<const GeometryLayer*>(layer);
+  impl_->attributes_ = lay->get_attributes();
+}
+
 void GeometryLayer::render(Vulkan* vulkan) {
   /*struct ubo ubo;
   struct timeval tv, start_tv;
@@ -949,10 +948,10 @@ void GeometryLayer::render(Vulkan* vulkan) {
                      vertex_offset,
                      {impl_->vertex_buffer_},
                      get_opacity(),
-                     primitive.attributes_.color_,
-                     primitive.attributes_.light_,
-                     primitive.attributes_.point_size_,
-                     primitive.attributes_.line_width_,
+                     impl_->attributes_.color_,
+                     impl_->attributes_.light_,
+                     impl_->attributes_.point_size_,
+                     impl_->attributes_.line_width_,
                      ubo,
                      primitive.three_dimensional() ? view_matrix_3d : view_matrix_2d);
         vertex_offset += vertex_count;
