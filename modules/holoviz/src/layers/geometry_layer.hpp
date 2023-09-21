@@ -21,6 +21,7 @@
 #include <cuda.h>
 
 #include <cstdint>
+#include <list>
 #include <memory>
 
 #include "layer.hpp"
@@ -121,6 +122,8 @@ class GeometryLayer : public Layer {
   ///@}
   Attributes& get_attributes() const;
   void set_attributes(const Layer* layer) override;
+  std::list<class Primitive>& get_primitives() const;
+  void set_vertex_buffer(const Layer* layer) override;
 
  private:
   struct Impl;

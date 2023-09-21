@@ -290,6 +290,30 @@
             ]
         },
         {
+            "name": "(gdb) examples/holoviz_vkcube_operator/cpp/holoviz_vkcube_operator",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${command:cmake.buildDirectory}/examples/holoviz_vkcube_operator/cpp/holoviz_vkcube_operator",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${command:cmake.buildDirectory}",
+            "environment": [
+                {
+                    "name": "HOLOSCAN_LOG_LEVEL",
+                    "value": "DEBUG"
+                }
+            ],
+            "console": "externalTerminal",
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
             "name": "(gdb) examples/holoviz/python/holoviz_geometry.py",
             "type": "cppdbg",
             "request": "launch",

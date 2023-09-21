@@ -110,6 +110,7 @@ class Layer {
    */
   void set_views(const std::vector<View> &views);
   virtual void set_attributes(const Layer* layer);
+  virtual void set_vertex_buffer(const Layer* layer);
 
   /**
    * Add a layer view.

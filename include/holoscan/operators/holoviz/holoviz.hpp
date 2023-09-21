@@ -241,10 +241,11 @@ namespace holoscan::ops {
  */
 class HolovizOp : public Operator {
  public:
-  HOLOSCAN_OPERATOR_FORWARD_ARGS(HolovizOp)
+  HOLOSCAN_OPERATOR_FORWARD_ARGS(HolovizOp);
 
   HolovizOp() = default;
-
+  // template <typename ArgT, typename... ArgsT>
+  // HolovizOp(ArgT&& arg, ArgsT&&... args) : Operator(arg, args...) {}
   void setup(OperatorSpec& spec) override;
   void initialize() override;
   void start() override;
@@ -381,7 +382,7 @@ class HolovizOp : public Operator {
     std::vector<View> views_;
   };
 
- private:
+ protected:
   void enable_conditional_port(const std::string& name);
   bool check_port_enabled(const std::string& name);
   void set_input_spec(const InputSpec& input_spec);

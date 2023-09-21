@@ -64,6 +64,7 @@ const std::vector<Layer::View>& Layer::get_views() const {
 }
 
 void Layer::set_attributes(const Layer* layer) {}
+void Layer::set_vertex_buffer(const Layer* layer) {}
 void Layer::set_views(const std::vector<View>& views) {
   impl_->views_ = views;
 }

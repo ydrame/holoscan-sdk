@@ -225,11 +225,13 @@ namespace holoscan::ops {
  *    The rendered framebuffer can be output to `render_buffer_output`.
  *
  */
-class HolovizOpVkCube : public HolovizOp {
+class HolovizOpVkCube : public Operator {
  public:
-  HOLOSCAN_OPERATOR_FORWARD_ARGS(HolovizOpVkCube)
-
+  HOLOSCAN_OPERATOR_FORWARD_ARGS_SUPER(HolovizOpVkCube, holoscan::ops::HolovizOp);
   HolovizOpVkCube() = default;
+  // template <typename ArgT, typename... ArgsT>
+  // HolovizOpVkCube(ArgT&& arg, ArgsT&&... args)
+  //   : HolovizOp(std::forward<ArgT>(arg), std::forward<ArgsT>(args)...) {}
 
   void setup(OperatorSpec& spec) override;
   void initialize() override;

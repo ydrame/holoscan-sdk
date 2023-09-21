@@ -826,9 +826,19 @@ void GeometryLayer::end(Vulkan* vulkan) {
 Attributes& GeometryLayer::get_attributes() const {
   return impl_->attributes_;
 }
+std::list<Primitive>& GeometryLayer::get_primitives() const {
+  return impl_->primitives_;
+}
 void GeometryLayer::set_attributes(const Layer* layer) {
   auto lay = reinterpret_cast<const GeometryLayer*>(layer);
   impl_->attributes_ = lay->get_attributes();
+}
+void GeometryLayer::set_vertex_buffer(const Layer* layer) {
+  auto lay = reinterpret_cast<const GeometryLayer*>(layer);
+  // impl_->primitives_ = lay->get_primitives();
+  std::copy(impl_->primitives_.begin(),
+            impl_->primitives_.end(),
+            std::back_inserter(lay->get_primitives()));
 }
 
 void GeometryLayer::render(Vulkan* vulkan) {

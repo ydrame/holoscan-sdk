@@ -259,6 +259,7 @@ void Context::end_layer() {
       (*it)->set_priority(impl_->active_layer_->get_priority());
       (*it)->set_views(impl_->active_layer_->get_views());
       (*it)->set_attributes(impl_->active_layer_.get());
+      (*it)->set_vertex_buffer(impl_->active_layer_.get());
 
       // replace the current active layer with the cached item
       impl_->active_layer_ = std::move(*it);
