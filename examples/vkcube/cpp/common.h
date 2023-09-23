@@ -110,7 +110,7 @@ static inline bool streq(const char* a, const char* b) {
 
 void parse_args(int argc, char* argv[]);
 void init_display(struct vkcube* vc);
-void mainloop(struct vkcube* vc);
+bool mainloop(struct vkcube* vc);
 void init_cube_model();
 
 // struct model cube_model;

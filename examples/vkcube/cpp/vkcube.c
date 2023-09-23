@@ -840,57 +840,59 @@ static void schedule_xcb_repaint(struct vkcube* vc) {
   xcb_flush(vc->xcb.conn);
 }
 
-static void mainloop_xcb(struct vkcube* vc) {
+static bool mainloop_xcb(struct vkcube* vc) {
   xcb_generic_event_t* event;
   xcb_key_press_event_t* key_press;
   xcb_client_message_event_t* client_message;
   xcb_configure_notify_event_t* configure;
 
-  while (1) {
-    bool repaint = false;
-    event = xcb_wait_for_event(vc->xcb.conn);
-    while (event) {
-      switch (event->response_type & 0x7f) {
-        case XCB_CLIENT_MESSAGE:
-          client_message = (xcb_client_message_event_t*)event;
-          if (client_message->window != vc->xcb.window) break;
+  // while (1) {
+  bool repaint = false;
+  event = xcb_wait_for_event(vc->xcb.conn);
+  while (event) {
+    switch (event->response_type & 0x7f) {
+      case XCB_CLIENT_MESSAGE:
+        client_message = (xcb_client_message_event_t*)event;
+        if (client_message->window != vc->xcb.window) break;
 
-          if (client_message->type == vc->xcb.atom_wm_protocols &&
-              client_message->data.data32[0] == vc->xcb.atom_wm_delete_window) {
-            exit(0);
+        if (client_message->type == vc->xcb.atom_wm_protocols &&
+            client_message->data.data32[0] == vc->xcb.atom_wm_delete_window) {
+          // exit(0);
+          return true;
+        }
+
+        if (client_message->type == XCB_ATOM_NOTICE) repaint = true;
+        break;
+
+      case XCB_CONFIGURE_NOTIFY:
+        configure = (xcb_configure_notify_event_t*)event;
+        if (vc->width != configure->width || vc->height != configure->height) {
+          if (vc->image_count > 0) {
+            vkDestroySwapchainKHR(vc->device, vc->swap_chain, NULL);
+            vc->image_count = 0;
           }
 
-          if (client_message->type == XCB_ATOM_NOTICE) repaint = true;
-          break;
+          vc->width = configure->width;
+          vc->height = configure->height;
+        }
+        break;
 
-        case XCB_CONFIGURE_NOTIFY:
-          configure = (xcb_configure_notify_event_t*)event;
-          if (vc->width != configure->width || vc->height != configure->height) {
-            if (vc->image_count > 0) {
-              vkDestroySwapchainKHR(vc->device, vc->swap_chain, NULL);
-              vc->image_count = 0;
-            }
+      case XCB_EXPOSE:
+        schedule_xcb_repaint(vc);
+        break;
 
-            vc->width = configure->width;
-            vc->height = configure->height;
-          }
-          break;
+      case XCB_KEY_PRESS:
+        key_press = (xcb_key_press_event_t*)event;
 
-        case XCB_EXPOSE:
-          schedule_xcb_repaint(vc);
-          break;
+        if (key_press->detail == 9)  // exit(0)
+          return TRUE;
 
-        case XCB_KEY_PRESS:
-          key_press = (xcb_key_press_event_t*)event;
-
-          if (key_press->detail == 9) exit(0);
-
-          break;
-      }
-      free(event);
-
-      event = xcb_poll_for_event(vc->xcb.conn);
+        break;
     }
+    free(event);
+
+    event = xcb_poll_for_event(vc->xcb.conn);
+  }
 
     if (repaint) {
       if (vc->image_count == 0) create_swapchain(vc);
@@ -906,9 +908,10 @@ static void mainloop_xcb(struct vkcube* vc) {
         case VK_TIMEOUT:               /* try later */
         case VK_ERROR_OUT_OF_DATE_KHR: /* handled by native events */
           schedule_xcb_repaint(vc);
-          continue;
+          // continue;
+          return false;
         default:
-          return;
+          return false;
       }
 
       assert(index <= MAX_NUM_IMAGES);
@@ -935,7 +938,8 @@ static void mainloop_xcb(struct vkcube* vc) {
     }
 
     xcb_flush(vc->xcb.conn);
-  }
+    // }
+    return false;
 }
 #endif
 
@@ -1341,14 +1345,15 @@ void init_display(struct vkcube* vc) {
   }
 }
 
-void mainloop(struct vkcube* vc) {
+bool mainloop(struct vkcube* vc) {
+  bool windowShouldClose = false;
   switch (display_mode) {
     case DISPLAY_MODE_AUTO:
       assert(!"display mode is unset");
       break;
 #if defined(ENABLE_XCB)
     case DISPLAY_MODE_XCB:
-      mainloop_xcb(vc);
+      windowShouldClose = mainloop_xcb(vc);
       break;
 #endif
     case DISPLAY_MODE_KMS:
@@ -1363,4 +1368,5 @@ void mainloop(struct vkcube* vc) {
       write_buffer(vc, &vc->buffers[0]);
       break;
   }
+  return windowShouldClose;
 }
