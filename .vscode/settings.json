@@ -118,7 +118,11 @@
         "charconv": "cpp",
         "cuchar": "cpp",
         "propagate_const": "cpp",
-        "ranges": "cpp"
+        "ranges": "cpp",
+        "stdint.h": "c",
+        "common.h": "c",
+        "xcb.h": "c",
+        "unistd.h": "c"
     },
     "git.alwaysSignOff": true,
     "git.untrackedChanges": "separate",

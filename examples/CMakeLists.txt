@@ -35,6 +35,7 @@ add_subdirectory(tensor_interop)
 add_subdirectory(v4l2_camera)
 add_subdirectory(video_replayer)
 add_subdirectory(video_replayer_distributed)
+add_subdirectory(vkcube)
 add_subdirectory(wrap_operator_as_gxf_extension)
 
 if(HOLOSCAN_INSTALL_EXAMPLE_SOURCE)
