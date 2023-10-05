@@ -286,70 +286,6 @@ static void init_buffer(struct vkcube* vc, struct vkcube_buffer* b) {
 }
 
 /* Headless code - write one frame to png */
-/*
-static void convert_to_bytes(png_structp png, png_row_infop row_info, png_bytep data) {
-  for (uint32_t i = 0; i < row_info->rowbytes; i += 4) {
-    uint8_t* b = &data[i];
-    uint32_t pixel;
-
-    memcpy(&pixel, b, sizeof(uint32_t));
-    b[0] = (pixel & 0xff0000) >> 16;
-    b[1] = (pixel & 0x00ff00) >> 8;
-    b[2] = (pixel & 0x0000ff) >> 0;
-    b[3] = 0xff;
-  }
-}
-*/
-/*
-static void write_png(const char* path, int32_t width, int32_t height, int32_t stride,
-                      void* pixels) {
-  FILE* f = NULL;
-  png_structp png_writer = NULL;
-  png_infop png_info = NULL;
-
-  uint8_t* rows[height];
-
-  for (int32_t y = 0; y < height; y++) rows[y] = pixels + y * stride;
-
-  f = fopen(path, "wb");
-  fail_if(!f, "failed to open file for writing: %s", path);
-
-  png_writer = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-  fail_if(!png_writer, "failed to create png writer");
-
-  png_info = png_create_info_struct(png_writer);
-  fail_if(!png_info, "failed to create png writer info");
-
-  png_init_io(png_writer, f);
-  png_set_IHDR(png_writer,
-               png_info,
-               width,
-               height,
-               8,
-               PNG_COLOR_TYPE_RGBA,
-               PNG_INTERLACE_NONE,
-               PNG_COMPRESSION_TYPE_DEFAULT,
-               PNG_FILTER_TYPE_DEFAULT);
-  png_write_info(png_writer, png_info);
-  png_set_rows(png_writer, png_info, rows);
-  png_set_write_user_transform_fn(png_writer, convert_to_bytes);
-  png_write_png(png_writer, png_info, PNG_TRANSFORM_IDENTITY, NULL);
-
-  png_destroy_write_struct(&png_writer, &png_info);
-
-  fclose(f);
-}
-*/
-static void write_buffer(struct vkcube* vc, struct vkcube_buffer* b) {
-  const char* filename = arg_out_file;
-  uint32_t mem_size = b->stride * vc->height;
-  void* map;
-
-  vkMapMemory(vc->device, b->mem, 0, mem_size, 0, &map);
-
-  fprintf(stderr, "writing first frame to %s\n", filename);
-  // write_png(filename, vc->width, vc->height, b->stride, map);
-}
 
 // Return -1 on failure.
 static int init_headless(struct vkcube* vc) {
@@ -555,7 +491,7 @@ static int init_kms(struct vkcube* vc) {
 static void page_flip_handler(int fd, unsigned int frame, unsigned int sec, unsigned int usec,
                               void* data) {}
 
-static void mainloop_vt(struct vkcube* vc) {
+static void renderloop_vt(struct vkcube* vc) {
   int len, ret;
   char buf[16];
   struct pollfd pfd[2];
@@ -615,7 +551,7 @@ static int init_kms(struct vkcube* vc) {
   return -1;
 }
 
-static void mainloop_vt(struct vkcube* vc) {}
+static void renderloop_vt(struct vkcube* vc) {}
 
 #endif
 
@@ -840,7 +776,7 @@ static void schedule_xcb_repaint(struct vkcube* vc) {
   xcb_flush(vc->xcb.conn);
 }
 
-static bool mainloop_xcb(struct vkcube* vc) {
+static bool renderloop_xcb(struct vkcube* vc) {
   xcb_generic_event_t* event;
   xcb_key_press_event_t* key_press;
   xcb_client_message_event_t* client_message;
@@ -879,14 +815,6 @@ static bool mainloop_xcb(struct vkcube* vc) {
 
       case XCB_EXPOSE:
         schedule_xcb_repaint(vc);
-        break;
-
-      case XCB_KEY_PRESS:
-        key_press = (xcb_key_press_event_t*)event;
-
-        if (key_press->detail == 9)  // exit(0)
-          return TRUE;
-
         break;
     }
     free(event);
@@ -1145,7 +1073,7 @@ static int init_khr(struct vkcube* vc) {
   return 0;
 }
 
-static void mainloop_khr(struct vkcube* vc) {
+static void renderloop_khr(struct vkcube* vc) {
   while (1) {
     uint32_t index;
     VkResult result = vkAcquireNextImageKHR(
@@ -1255,22 +1183,21 @@ void parse_args(int argc, char* argv[]) {
 
   while ((opt = getopt(argc, argv, optstring)) != -1) {
     switch (opt) {
-      case 'm':
-        found_arg_display_mode = true;
-        if (!display_mode_from_string(optarg, &display_mode))
-          usage_error("option -m given bad display mode");
-        break;
-      case 'n':
-        found_arg_headless = true;
-        display_mode = DISPLAY_MODE_HEADLESS;
-        break;
+      // Width & Heigt
       case 'w':
         width = atoi(optarg);
         break;
       case 'h':
         height = atoi(optarg);
         break;
-      case 'k': {
+
+      // Alternate display modes
+      case 'm':
+        found_arg_display_mode = true;
+        if (!display_mode_from_string(optarg, &display_mode))
+          usage_error("option -m given bad display mode");
+        break;
+      case 'k': {  //
         char config[40], *saveptr, *t;
         snprintf(config, sizeof(config), "%s", optarg);
         if ((t = strtok_r(config, ":", &saveptr))) {
@@ -1282,12 +1209,13 @@ void parse_args(int argc, char* argv[]) {
         }
         break;
       }
-      case 'o':
-        arg_out_file = xstrdup(optarg);
-        break;
+
+      // Protected chain
       case 'p':
         protected_chain = true;
         break;
+
+      // Troubleshoot
       case '?':
         usage_error("invalid option '-%c'", optopt);
         break;
@@ -1309,27 +1237,33 @@ void parse_args(int argc, char* argv[]) {
 void init_display(struct vkcube* vc) {
   switch (display_mode) {
     case DISPLAY_MODE_AUTO:
-#if defined(ENABLE_XCB)
-      display_mode = DISPLAY_MODE_XCB;
-      if (init_xcb(vc) == -1) {
+      display_mode = DISPLAY_MODE_HEADLESS;
+      if (init_headless(vc) == -1) {
         fprintf(stderr,
-                "failed to initialize xcb, falling back "
-                "to kms\n");
-#endif
-        display_mode = DISPLAY_MODE_KMS;
-        if (init_kms(vc) == -1) {
-          fprintf(stderr,
-                  "failed to initialize kms, falling "
-                  "back to headless\n");
-          display_mode = DISPLAY_MODE_HEADLESS;
-          if (init_headless(vc) == -1) { fail("failed to initialize headless mode"); }
-        }
+                "failed to initialize headless mode, falling "
+                "back to xcb\n");
+
 #if defined(ENABLE_XCB)
-      }
+        display_mode = DISPLAY_MODE_XCB;
+        if (init_xcb(vc) == -1) {
+          fprintf(stderr,
+                  "failed to initialize xcb, falling back "
+                  "to kms\n");
 #endif
+          display_mode = DISPLAY_MODE_KMS;
+          if (init_kms(vc) == -1) { fprintf(stderr, "failed to initialize kms\n"); }
+#if defined(ENABLE_XCB)
+        }
+#endif
+      } else {
+        default_display = true;
+      }
       break;
     case DISPLAY_MODE_HEADLESS:
-      if (init_headless(vc) == -1) fail("failed to initialize headless mode");
+      if (init_headless(vc) == -1) {
+        fail("failed to initialize headless mode");
+        default_display = true;
+      }
       break;
     case DISPLAY_MODE_KHR:
       if (init_khr(vc) == -1) fail("fail to initialize khr");
@@ -1345,27 +1279,34 @@ void init_display(struct vkcube* vc) {
   }
 }
 
-bool mainloop(struct vkcube* vc) {
+bool renderloop(struct vkcube* vc) {
+  bool windowShouldClose = false;
+  vc->model.render(vc, &vc->buffers[0], false);
+  vkQueueWaitIdle(vc->queue);
+  return windowShouldClose;
+}
+
+bool renderloop_alternate_display(struct vkcube* vc) {
   bool windowShouldClose = false;
   switch (display_mode) {
     case DISPLAY_MODE_AUTO:
       assert(!"display mode is unset");
       break;
+#if defined(ENABLE_WAYLAND)
+    case DISPLAY_MODE_WAYLAND:
+      renderloop_wayland(vc);
+      break;
+#endif
 #if defined(ENABLE_XCB)
     case DISPLAY_MODE_XCB:
-      windowShouldClose = mainloop_xcb(vc);
+      windowShouldClose = renderloop_xcb(vc);
       break;
 #endif
     case DISPLAY_MODE_KMS:
-      mainloop_vt(vc);
+      renderloop_vt(vc);
       break;
     case DISPLAY_MODE_KHR:
-      mainloop_khr(vc);
-      break;
-    case DISPLAY_MODE_HEADLESS:
-      vc->model.render(vc, &vc->buffers[0], false);
-      vkQueueWaitIdle(vc->queue);
-      write_buffer(vc, &vc->buffers[0]);
+      renderloop_khr(vc);
       break;
   }
   return windowShouldClose;

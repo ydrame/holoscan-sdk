@@ -245,59 +245,59 @@ class HolovizGeometryApp : public holoscan::Application {
     boxes_spec.line_width_ = 2.f;
     boxes_spec.color_ = {1.0f, 0.0f, 1.0f, 0.5f};
     boxes_spec.priority_ = priority++;
+    /*
+        // line strip reuses the rectangle coordinates. This will make
+        // a connected set of line segments through the diagonals of
+        // each box.
+        auto& line_strip_spec = input_spec.emplace_back(
+            ops::HolovizOp::InputSpec("boxes", ops::HolovizOp::InputType::LINE_STRIP));
+        line_strip_spec.line_width_ = 3.f;
+        line_strip_spec.color_ = {0.4f, 0.4f, 1.0f, 0.7f};
+        line_strip_spec.priority_ = priority++;
 
-    // line strip reuses the rectangle coordinates. This will make
-    // a connected set of line segments through the diagonals of
-    // each box.
-    auto& line_strip_spec = input_spec.emplace_back(
-        ops::HolovizOp::InputSpec("boxes", ops::HolovizOp::InputType::LINE_STRIP));
-    line_strip_spec.line_width_ = 3.f;
-    line_strip_spec.color_ = {0.4f, 0.4f, 1.0f, 0.7f};
-    line_strip_spec.priority_ = priority++;
+        // Lines also reuses the boxes coordinates so will plot a set of
+        // disconnected line segments along the box diagonals.
+        auto& lines_spec = input_spec.emplace_back(
+            ops::HolovizOp::InputSpec("boxes", ops::HolovizOp::InputType::LINES));
+        lines_spec.line_width_ = 3.f;
+        lines_spec.color_ = {0.4f, 1.0f, 0.4f, 0.7f};
+        lines_spec.priority_ = priority++;
 
-    // Lines also reuses the boxes coordinates so will plot a set of
-    // disconnected line segments along the box diagonals.
-    auto& lines_spec = input_spec.emplace_back(
-        ops::HolovizOp::InputSpec("boxes", ops::HolovizOp::InputType::LINES));
-    lines_spec.line_width_ = 3.f;
-    lines_spec.color_ = {0.4f, 1.0f, 0.4f, 0.7f};
-    lines_spec.priority_ = priority++;
+        // Parameters defining the triangle primitives
+        auto& triangles_spec = input_spec.emplace_back(
+            ops::HolovizOp::InputSpec("triangles", ops::HolovizOp::InputType::TRIANGLES));
+        triangles_spec.color_ = {1.0f, 0.0f, 0.0f, 0.5f};
+        triangles_spec.priority_ = priority++;
 
-    // Parameters defining the triangle primitives
-    auto& triangles_spec = input_spec.emplace_back(
-        ops::HolovizOp::InputSpec("triangles", ops::HolovizOp::InputType::TRIANGLES));
-    triangles_spec.color_ = {1.0f, 0.0f, 0.0f, 0.5f};
-    triangles_spec.priority_ = priority++;
+        // Parameters defining the crosses primitives
+        auto& crosses_spec = input_spec.emplace_back(
+            ops::HolovizOp::InputSpec("crosses", ops::HolovizOp::InputType::CROSSES));
+        crosses_spec.line_width_ = 3.f;
+        crosses_spec.color_ = {0.0f, 1.0f, 0.0f, 1.0f};
+        crosses_spec.priority_ = priority++;
 
-    // Parameters defining the crosses primitives
-    auto& crosses_spec = input_spec.emplace_back(
-        ops::HolovizOp::InputSpec("crosses", ops::HolovizOp::InputType::CROSSES));
-    crosses_spec.line_width_ = 3.f;
-    crosses_spec.color_ = {0.0f, 1.0f, 0.0f, 1.0f};
-    crosses_spec.priority_ = priority++;
+        // Parameters defining the ovals primitives
+        auto& ovals_spec = input_spec.emplace_back(
+            ops::HolovizOp::InputSpec("ovals", ops::HolovizOp::InputType::OVALS));
+        ovals_spec.opacity_ = 0.5f;
+        ovals_spec.line_width_ = 2.f;
+        ovals_spec.color_ = {1.0f, 1.0f, 1.0f, 1.0f};
+        ovals_spec.priority_ = priority++;
 
-    // Parameters defining the ovals primitives
-    auto& ovals_spec = input_spec.emplace_back(
-        ops::HolovizOp::InputSpec("ovals", ops::HolovizOp::InputType::OVALS));
-    ovals_spec.opacity_ = 0.5f;
-    ovals_spec.line_width_ = 2.f;
-    ovals_spec.color_ = {1.0f, 1.0f, 1.0f, 1.0f};
-    ovals_spec.priority_ = priority++;
+        // Parameters defining the points primitives
+        auto& points_spec = input_spec.emplace_back(
+            ops::HolovizOp::InputSpec("points", ops::HolovizOp::InputType::POINTS));
+        points_spec.point_size_ = 4.f;
+        points_spec.color_ = {1.0f, 1.0f, 1.0f, 1.0f};
+        points_spec.priority_ = priority++;
 
-    // Parameters defining the points primitives
-    auto& points_spec = input_spec.emplace_back(
-        ops::HolovizOp::InputSpec("points", ops::HolovizOp::InputType::POINTS));
-    points_spec.point_size_ = 4.f;
-    points_spec.color_ = {1.0f, 1.0f, 1.0f, 1.0f};
-    points_spec.priority_ = priority++;
-
-    // Parameters defining the label_coords primitives
-    auto& label_coords_spec = input_spec.emplace_back(
-        ops::HolovizOp::InputSpec("label_coords", ops::HolovizOp::InputType::TEXT));
-    label_coords_spec.color_ = {1.0f, 1.0f, 1.0f, 1.0f};
-    label_coords_spec.text_ = {"label_1", "label_2"};
-    label_coords_spec.priority_ = priority++;
-
+        // Parameters defining the label_coords primitives
+        auto& label_coords_spec = input_spec.emplace_back(
+            ops::HolovizOp::InputSpec("label_coords", ops::HolovizOp::InputType::TEXT));
+        label_coords_spec.color_ = {1.0f, 1.0f, 1.0f, 1.0f};
+        label_coords_spec.text_ = {"label_1", "label_2"};
+        label_coords_spec.priority_ = priority++;
+    */
     auto visualizer = make_operator<ops::HolovizOp>(
         "holoviz", Arg("width", 854u), Arg("height", 480u), Arg("tensors", input_spec));
 

@@ -14,9 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <chrono>
 
 #include <holoscan/holoscan.hpp>
 #include <iostream>
+#include <string>
 
 extern "C" {
 #include "common.h"
@@ -24,6 +26,16 @@ extern "C" {
 extern struct model cube_model;
 
 namespace holoscan::ops {
+
+std::string concatenate(int argc, char* argv[]) {
+  if (argc < 1) { return ""; }
+  std::string result(argv[0]);
+  for (int i = 1; i < argc; ++i) {
+    result += " ";
+    result += argv[i];
+  }
+  return result;
+}
 
 class VkCubeOp : public Operator {
  public:
@@ -36,6 +48,14 @@ class VkCubeOp : public Operator {
                "window_close_scheduling_term",
                "WindowCloseSchedulingTerm",
                "BooleanSchedulingTerm to stop the codelet from ticking when the window is closed.");
+    spec.param(argc_,
+               "argv",
+               "argv",
+               "BooleanSchedulingTerm to stop the codelet from ticking when the window is closed.");
+    spec.param(argvchar_,
+               "argvchar",
+               "argvchar",
+               "BooleanSchedulingTerm to stop the codelet from ticking when the window is closed.");
   }
   void initialize() {
     auto frag = fragment();
@@ -44,38 +64,45 @@ class VkCubeOp : public Operator {
         frag->make_condition<holoscan::BooleanCondition>("window_close_scheduling_term");
     add_arg(window_close_scheduling_term_.get());
 
-    int argc_ = 1;
-    char** argv_;
-    // auto argc__ = args();
-    //  auto argv__ = argv();
-    //   spec.param(argc, "multiplier", "Multiplier", "Multiply the input by this value", 1);
-    //    spec.param(argv, "multiplier", "Multiplier", "Multiply the input by this value", "");
-    // auto argv__ = &(args().data());
-    parse_args(argc_, argv_);
+    using namespace std::chrono_literals;
+
+    auto has_argv = std::find_if(
+        args().begin(), args().end(), [](const auto& arg) { return (arg.name() == "argvchar"); });
+    auto has_argc = std::find_if(
+        args().begin(), args().end(), [](const auto& arg) { return (arg.name() == "argc"); });
+
+    if (has_argv != args().end() && has_argc != args().end()) {
+      int argcval = std::any_cast<int>(has_argc->value());
+      char** value = std::any_cast<char**>((*has_argv).value());
+      parse_args(argcval, value);
+
+    } else {
+      int argc__ = 1;
+      char** argv__;
+      parse_args(argc__, argv__);
+    }
 
     vc.model = cube_model;
     // vc.gbm_device = NULL;
 #if defined(ENABLE_XCB)
     vc.xcb.window = XCB_NONE;
 #endif
+#if defined(ENABLE_WAYLAND)
+    vc.wl.surface = NULL;
+#endif
     vc.width = width;
     vc.height = height;
     vc.protected_ = protected_chain;
+
     gettimeofday(&vc.start_tv, NULL);
+    init_display(&vc);
     Operator::initialize();
   }
-  void start() {
-    init_display(&vc);
-    window_close_scheduling_term_->enable_tick();
-  }
+  void start() { window_close_scheduling_term_->enable_tick(); }
 
   void compute(InputContext& op_input, OutputContext& op_output,
                ExecutionContext& context) override {
-    std::cout << std::endl;
-    std::cout << "Hello World!" << std::endl;
-    std::cout << std::endl;
-    auto windowShouldClose = mainloop(&vc);
-    // cast Condition to BooleanCondition
+    auto windowShouldClose = default_display ? renderloop(&vc) : renderloop_alternate_display(&vc);
     if (windowShouldClose) {
       window_close_scheduling_term_->disable_tick();
       return;
@@ -84,9 +111,11 @@ class VkCubeOp : public Operator {
 
  private:
   struct vkcube vc;
-  Parameter<int> argc;
-  Parameter<char**> argv;
+  Parameter<int> argc_;
+  Parameter<char**> argvchar_;
+  Parameter<std::string> argv_;
   Parameter<std::shared_ptr<BooleanCondition>> window_close_scheduling_term_;
+  Parameter<std::shared_ptr<PeriodicCondition>> periodic_scheduling_term_;
 };
 
 }  // namespace holoscan::ops
@@ -96,13 +125,11 @@ class VkCubeApp : public holoscan::Application {
   explicit VkCubeApp(int argc, char** argv) : argc(argc), argv(argv) {}
   void compose() override {
     using namespace holoscan;
-
     // Define the operators
-    auto hello = make_operator<ops::VkCubeOp>(
-        "hello", Arg("argc", argc), Arg("argv", argv), make_condition<CountCondition>(1));
+    auto vkCubeOp = make_operator<ops::VkCubeOp>("hello", Arg("argc", argc), Arg("argvchar", argv));
 
     // Define the one-operator workflow
-    add_operator(hello);
+    add_operator(vkCubeOp);
   }
 
  private:
@@ -112,8 +139,6 @@ class VkCubeApp : public holoscan::Application {
 
 int main(int argc, char** argv) {
   auto app = holoscan::make_application<VkCubeApp>(argc, argv);
-  app->scheduler(app->make_scheduler<holoscan::GreedyScheduler>(
-      "greedy-scheduler", holoscan::Arg("max_duration_ms", 10000L)));
   app->run();
   return 0;
 }

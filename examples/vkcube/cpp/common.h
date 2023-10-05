@@ -27,6 +27,7 @@
 #define MAX_NUM_IMAGES 5
 static uint32_t width = 1024, height = 768;
 static bool protected_chain = false;
+static bool default_display = false;
 
 struct vkcube_buffer {
   // struct gbm_bo* gbm_bo;
@@ -110,7 +111,8 @@ static inline bool streq(const char* a, const char* b) {
 
 void parse_args(int argc, char* argv[]);
 void init_display(struct vkcube* vc);
-bool mainloop(struct vkcube* vc);
+bool renderloop(struct vkcube* vc);
+bool renderloop_alternate_display(struct vkcube* vc);
 void init_cube_model();
 
 // struct model cube_model;
